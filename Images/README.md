@@ -1,15 +1,13 @@
 # SOLO Images
 
-1. **BitSavers**: http://www.bitsavers.org
-
-Source URL: http://www.bitsavers.org/bits/DEC/pdp11/Brinch_Hansen_SOLO/
+Source: [BitSavers](http://www.bitsavers.org). URL: http://www.bitsavers.org/bits/DEC/pdp11/Brinch_Hansen_SOLO/
 
 |Image            | Description   |
 |-----------------|---------------|
 |solo.dsk         |SOLO Disk Image|
 |soloDiskImage.tap|SOLO Tape Image|
 
-2. **soloDiskImage.tap**
+Source: **soloDiskImage.tap**
 
 |Image                   |Description                        |Software Tool|
 |------------------------|-----------------------------------|-------------|
@@ -17,4 +15,4 @@ Source URL: http://www.bitsavers.org/bits/DEC/pdp11/Brinch_Hansen_SOLO/
 
 **soloDiskImage.tap.file.1** and **solo.dsk** are identical 
             
-3. SOLO Software Tools Repository: https://github.com/ngospina/SOLO-Tools
+SOLO Software Tools Repository: https://github.com/ngospina/SOLO-Tools
