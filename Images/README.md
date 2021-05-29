@@ -1,7 +1,7 @@
 # SOLO Images
 
 ## [BitSavers](http://www.bitsavers.org).
-Source: http://www.bitsavers.org/bits/DEC/pdp11/Brinch_Hansen_SOLO/
+Source: <http://www.bitsavers.org/bits/DEC/pdp11/Brinch_Hansen_SOLO/>
 
 |Image            | Description   |
 |-----------------|---------------|
@@ -9,7 +9,7 @@ Source: http://www.bitsavers.org/bits/DEC/pdp11/Brinch_Hansen_SOLO/
 |soloDiskImage.tap|SOLO Tape Image|
 
 ## [Stuttgart University](http://computermuseum.informatik.uni-stuttgart.de).
-Source: ftp://ftp.informatik.uni-stuttgart.de/pub/cm/dec/pdp11/
+Source: <ftp://ftp.informatik.uni-stuttgart.de/pub/cm/dec/pdp11/>
 
 |Image            | Description   |
 |-----------------|---------------|
