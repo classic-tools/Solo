@@ -4,12 +4,16 @@
 
 Source URL: http://www.bitsavers.org/bits/DEC/pdp11/Brinch_Hansen_SOLO/
 
+|Image            | Description   |
+|-----------------|---------------|
+|solo.dsk         |SOLO Disk Image|
+|soloDiskImage.tap|SOLO Tape Image|
 
-**solo.dsk**: SOLO Disk Image
+2. **soloDiskImage.tap**
 
-**soloDiskImage.tap**: SOLO Tape Image
+|Image                   |Description                        |Software Tool|
+|soloDiskImage.tap.file.1|SOLO Disk Image extracted from tape|TapExtract   | 
 
-**soloDiskImage.tap.file.1**: SOLO Disk Image extracted from **soloDiskImage.tap**. **soloDiskImage.tap.file.1** and **solo.dsk** are identical. Software tool used: TapExtract
+**soloDiskImage.tap.file.1** and **solo.dsk** are identical             
 
-
-SOLO Software Tools Repository: https://github.com/ngospina/SOLO-Tools
+3. SOLO Software Tools Repository: https://github.com/ngospina/SOLO-Tools
