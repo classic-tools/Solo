@@ -77,15 +77,12 @@ Text files extracted from disk image
 |SPASS1TEXT  |SPASS1 source code    |
 |SPASS2TEXT  |SPASS2 source code    |
 |SPASS3TEXT  |SPASS3 source code    |
-|STARTMAN    |START manual          |   
-|STARTTEXT   |START source code     |
-|SPASS1TEXT  |SPASS1 source code    |
-|SPASS2TEXT  |SPASS2 source code    |
-|SPASS3TEXT  |SPASS3 source code    |
 |SPASS4TEXT  |SPASS4 source code    |
 |SPASS5TEXT  |SPASS5 source code    |
 |SPASS6TEXT  |SPASS6 source code    |
 |SPASS7TEXT  |SPASS7 source code    |
+|STARTMAN    |START manual          |   
+|STARTTEXT   |START source code     |
 |TAPEMAN     |TAPE manual           |
 |TAPETEXT    |TAPE source code      |
 |WRITEMAN    |WRITE manual          |

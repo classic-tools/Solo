@@ -1,4 +1,4 @@
-# solo.dsk text files
+# solo.rk05.dsk text files
 Text files extracted from disk image
 
 ## RT-11 text files
