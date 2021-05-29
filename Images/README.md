@@ -1,6 +1,6 @@
 # SOLO Images
 
-## [BitSavers](http://www.bitsavers.org). Source: [PDP Bits](http://www.bitsavers.org/bits/DEC/pdp11/Brinch_Hansen_SOLO/)
+## [BitSavers](http://www.bitsavers.org). Source: http://www.bitsavers.org/bits/DEC/pdp11/Brinch_Hansen_SOLO/
 
 |Image            | Description   |
 |-----------------|---------------|
@@ -15,7 +15,7 @@
 
 soloDiskImage.tap.file.1 and solo.dsk are identical 
             
-## Source: [Stuttgart University](http://computermuseum.informatik.uni-stuttgart.de). Source: [PDP Archive](ftp://ftp.informatik.uni-stuttgart.de/pub/cm/dec/pdp11/)
+## [Stuttgart University](http://computermuseum.informatik.uni-stuttgart.de). Source: ftp://ftp.informatik.uni-stuttgart.de/pub/cm/dec/pdp11/
 
 |Image            | Description   |
 |-----------------|---------------|
