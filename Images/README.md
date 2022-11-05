@@ -9,7 +9,8 @@ Source: [PDP11 Software Archive](http://www.bitsavers.org/bits/DEC/pdp11/Brinch_
 |soloDiskImage.tap|SOLO Tape Image|
 
 ## [Stuttgart University](http://computermuseum.informatik.uni-stuttgart.de).
-Source: [PDP11 Archive](ftp://ftp.informatik.uni-stuttgart.de/pub/cm/dec/pdp11/) (FTP link. It will require an external client)
+Source   : ftp.informatik.uni-stuttgart.de (FTP server. It will require an external FTP client)
+Directory: /pub/cm/dec/pdp11/
 
 |Image            | Description   |
 |-----------------|---------------|
