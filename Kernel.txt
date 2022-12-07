@@ -1,0 +1,2069 @@
+"
+****  A DECLARATION OF RESPONSIBILITY  *****
+*
+*
+**************
+*
+*      THE DESIGN OF THIS KERNEL FOR CONCURRENT PASCAL IS BY
+*
+*             PER BRINCH HANSEN;
+*
+*      THE HIGH LEVEL ENCODING IS BY
+*
+*             PER BRINCH HANSEN,
+*             ROBERT S. DEVERILL;
+*
+*      BOTH OF WHOM ARE OF
+*
+*             INFORMATION SCIENCE
+*             ENGINEERING DIVISION
+*             CALIFORNIA INSTITUTE OF TECHNOLOGY
+*             PASADENA CALIFORNIA.
+*
+**************
+*
+*      THE DATE OF THIS CURRENT VERSION IS 9 JUNE 1975.
+*
+*      THE ORIGINAL VERSION WAS WRITTEN BY 10 DEC 1974.
+*
+*
+********************************************
+"
+"
+****  PROCEDURES TO PRINT THE KERNEL STATE  *****
+"
+ PROCEDURE PRINT(VAR I:
+                      INTEGER);
+ BEGIN
+ END;
+ PROCEDURE GRABPRINTER;
+ BEGIN
+ END;
+ PROCEDURE RELEASEPRINTER;
+ BEGIN
+ END;
+"
+*      PRINT THE KERNEL STATUS:
+"
+ PROCEDURE PRINTNEWCORE;
+ BEGIN
+   PRINT(BASEADDR);
+   PRINT(TOP);
+   PRINT(FREE);
+ END;
+ PROCEDURE PRINTQUEUE(Q);
+ BEGIN
+   PRINT(@Q);
+ END;
+ PROCEDURE PRINTTIME(T);
+ BEGIN
+ END;
+ PROCEDURE PRINTCLOCK;
+ BEGIN
+   PRINTTIME(NOW);
+   PRINTQUEUE(NEXTTIME.AWAITING)
+ END;
+ PROCEDURE PRINTCORE;
+ BEGIN
+   PRINT(HEADADDR DIV 64);
+   PRINT(CORECAPACITY);
+   PRINT(TOP);
+   PRINT(FREE);
+ END;
+ PROCEDURE PRINTHEAD(H);
+ BEGIN
+ END;
+ PROCEDURE PRINTREG(R);
+ BEGIN
+ END;
+ PROCEDURE PRINTMAP(M);
+ BEGIN
+ END;
+ PROCEDURE PRINTVIRTUAL;
+ BEGIN
+   PRINTMAP(HARDWAREMAP);
+   PRINT(COMMON);
+   PRINT(HEAPTOP);
+ END;
+ PROCEDURE PRINTPROCESS(P);
+ BEGIN
+   PRINT(@P);
+   PRINTHEAD(P.HEAD);
+   PRINTREG(P.REG);
+   PRINTMAP(P.MAP);
+ END;
+ PROCEDURE PRINTRUNNING;
+ BEGIN
+   PRINTPROCESS(USER);
+   PRINTHEAD(HEAD);
+   PRINT(CONST);
+   PRINTPARAMS;
+   PRINT(NEXTINDEX);
+   PRINTPROCESSIDS;
+   PRINTREG(REG);
+ END;
+ PROCEDURE PRINTREADY;
+ BEGIN
+   PRINTQUEUE(TOP);
+   PRINTQUEUE(MIDDLE);
+   PRINTQUEUE(BOTTOM);
+   PRINT(IDLING);
+ END;
+"
+*      PRINT THE KERNEL STATE:
+"
+ PROCEDURE KNSTAT;
+ BEGIN
+   GRABPRINTER;
+   PRINTNEWCORE;
+   PRINT(TIMER.PERIOD);
+   PRINTCLOCK;
+   PRINTCORE;
+   PRINTVIRTUAL;
+   PRINTRUNNING;
+   PRINTREADY;
+   RELEASEPRINTER;
+ END;
+"
+****  CORE VERIFICATION PROCEDURE  *****
+"
+ PROCEDURE VERIFYCORE;
+ BEGIN
+   GRABPRINTER;
+   PRINTRESULTS;
+   RELEASEPRINTER;
+ END;
+"
+****  PROCEDURE TO PRINT INTERPRETER TRACE  *****
+"
+ PROCEDURE PRINTTRACE(OPCODE, Q,
+                      S, SMAX);
+ BEGIN
+   PRINTNEWLINE;
+   PRINT(INDEX);
+   PRINT(OPCODE);
+   PRINT(Q);
+   PRINT(S);
+   PRINTSTACK;
+ END;
+"
+*             KERNEL CALL:
+"
+ CASE RUNNING.HEAD.OPCODE OF
+    0: WAIT;
+    2: REALTIME;
+    4: SYSTEMERROR;
+    6: INITPROCESS;
+    8: ENDPROCESS;
+   10: STOPJOB;
+   12: ENTER;
+   14: LEAVE;
+   16: DELAY;
+   18: CONTINUE;
+   20: INITGATE;
+   22: IO;
+ END;
+ IF RUNNING.USER = NIL THEN
+   READY.SELECT;
+"
+****  INITIALIZE THE KERNEL AND LOAD THE SYSTEM PROGRAM
+"
+ CONST PROGRAMSTART = ...;
+       KERNELLENGTH = ...;
+ TYPE STACKINDEX = 0..31;
+      MAPINDEX = 0..7;
+      DISKBLOCK = 0..4799;
+ VAR STACKPOINTER: STACKINDEX;
+     SYSTEMBLOCK: DISKBLOCK INIT 24;
+     SYSTEMTAPE: BOOLEAN;
+     KERNELSTACK: ARRAY
+          (.STACKINDEX.) OF INTEGER;
+     ADDRESSMAPPING: BOOLEAN;
+     KERNELSDRS: ARRAY (.MAPINDEX.)
+                         OF INTEGER;
+     KERNELMAP: ARRAY (.MAPINDEX.)
+                         OF INTEGER;
+     CORECAPACITY: INTEGER;
+ PROCEDURE LOADVIRTUALMACHINE;
+ CONST BLOCKINCR = 128;
+       REGISTERBLOCK = 3968;
+       DISK0 = 0;
+       SEGMENTDESCRIPTOR = ...
+ VAR ERROR: BOOLEAN;
+     I: MAPINDEX;
+ BEGIN
+   READ(DISK0, 0, 0, KERNELLENGTH,
+                             ERROR);
+   STACKPOINTER := 1;
+   FOR I := 0 TO 7 DO
+   BEGIN
+     KERNELSDRS(.I.) :=
+                  SEGMENTDESCRIPTOR;
+     KERNELMAP(.I.) :=
+                      I * BLOCKINCR;
+   END;
+   KERNELMAP(.7.) := REGISTERBLOCK;
+   IF ERROR THEN
+   BEGIN
+     TYPE('(:13:)(:10:)');
+     TYPE('KERNEL LOAD ERROR');
+     TYPE('(:13:)(:10:)');
+     HALT;
+   END;
+ END;
+ PROCEDURE LOADSYSTEMPROGRAM;
+ CONST PROGRAMEND = ...;
+       ENDOFCORE = ...;
+ TYPE PAGE = ARRAY (.1..256.) OF
+                            INTEGER;
+      SEGMENTINDEX = 1..4096;
+      SEGMENT = ARRAY
+        (.SEGMENTINDEX.) OF INTEGER;
+ VAR SEGADDR: @SEGMENT;
+     I: SEGMENTINDEX;
+     SEGINDEX: SEGMENTINDEX;
+ PROCEDURE LOADFROMTAPE;
+ CONST TAPE0 = 0;
+ VAR ERROR: BOOLEAN;
+     ADDR: @PAGE;
+ BEGIN
+   WHILE NOT MOUNTED(TAPE0) DO
+   BEGIN
+     TYPE('(:13:)(:10:)');
+     TYPE('MOUNT SYSTEM TAPE ');
+     TYPE('ON DRIVE 0 AND THEN ');
+     TYPE('PRESS "CONTINUE".');
+     HALT;
+   END;
+   REWIND(TAPE0, ERROR);
+   IF ERROR THEN
+   KERNELERROR(
+          'TAPE REWIND ERROR(:0:)');
+   ADDR := @PROGRAMSTART;
+   READ(TAPE0, ADDR, ERROR);
+   IF ERROR THEN
+   KERNELERROR(
+            'TAPE READ ERROR(:0:)');
+   FOR I := 2 TO
+       (ADDR@(.1.) + 511) DIV 512 DO
+   BEGIN
+     ADDR := NEXTPAGE(ADDR);
+     READ(TAPE0, ADDR, ERROR);
+     IF ERROR THEN
+     KERNELERROR(
+            'TAPE READ ERROR(:0:)');
+   END;
+ END "LOADFROMTAPE";
+ PROCEDURE LOADFROMDISK(SYSTEM:
+                         DISKBLOCK);
+ CONST DISK0 = 0;
+ VAR ERROR: BOOLEAN;
+     ADDR: @PAGE;
+     SYSTEMLENGTH: INTEGER;
+ BEGIN
+   ADDR := @PROGRAMSTART;
+   READ(DISK0, ADDR, SYSTEM, 512,
+                             ERROR);
+   ADDR := NEXTPAGE(ADDR);
+   IF ERROR THEN
+     KERNELERROR(
+          'SYSTEM LOAD ERROR(:0:)');
+   SYSTEMLENGTH :=
+            ((PROGRAMSTART(.1.) - 1)
+             DIV 512) * 512;
+   READ(DISK0, ADDR, SYSTEM+1,
+               SYSTEMLENGTH, ERROR);
+   IF ERROR THEN
+     KERNELERROR(
+          'SYSTEM LOAD ERROR(:0:)');
+ END "LOADFROMDISK";
+ BEGIN "LOADSYSTEMPROGRAM"
+   IF SYSTEMTAPE THEN
+     LOADFROMTAPE ELSE
+     LOADFROMDISK(SYSTEMBLOCK);
+   ADDRESSMAPPING := TRUE;
+   "CLEAR REMAINING CORE"
+   SEGADDR := GETSEGMENTADDRESS(
+                        PROGRAMEND);
+   SEGINDEX := GETSEGMENTINDEX(
+                        PROGRAMEND);
+   REPEAT
+     FOR I := SEGINDEX TO 4096 DO
+     SEGADDR@(.I.) := 0;
+     SEGADDR := GETNEXTSEGMENT(
+                           SEGADDR);
+     SEGINDEX := 1;
+   UNTIL SEGADDR = ENDOFCORE;
+   CORECAPACITY := BLOCKNUMBER(
+                           SEGADDR);
+ END;
+"###################################
+              #  BASIC DATA TYPES  #
+###################################"
+ CONST NIL = 0;
+       GATES = 25; "MONITOR GATES"
+       PROCESSES = 10; "PROCESSES"
+ TYPE PROCESS =
+   RECORD
+     "QUEUE LINK"
+     HEAD:
+           HEADTYPE;
+     REG:
+          REGTYPE;
+     MAP:
+          MAPTYPE;
+   END;
+ TYPE HEADTYPE =
+   RECORD
+     INDEX:
+            INTEGER;
+     HEAPTOP:
+              INTEGER;
+     LINE:
+           INTEGER;
+     RESULT:
+             INTEGER;
+     RUNTIME:
+              TIME;
+     SLICE:
+            INTEGER;
+     NESTING:
+              INTEGER;
+     PRIORITY:
+               INTEGER;
+     OVERTIME:
+               BOOLEAN;
+     JOB:
+          BOOLEAN;
+     CONTINUE:
+               BOOLEAN;
+     OPCODE:
+             INTEGER;
+     PARAM:
+            ARRAY (.1..4.) OF
+                            INTEGER;
+     OPLINE:
+             INTEGER;
+   END;
+ TYPE REGTYPE =
+   RECORD
+     W:
+        INTEGER;
+     X:
+        INTEGER;
+     Y:
+        INTEGER;
+     Q:
+        INTEGER;
+     B:
+        INTEGER;
+     G:
+        INTEGER;
+     S:
+        INTEGER;
+     P:
+        INTEGER;
+     PSTATUS:
+               INTEGER;
+     FW:
+         REAL;
+     FX:
+         REAL;
+     FSTATUS:
+              INTEGER;
+   END;
+ TYPE MAPTYPE =
+   ARRAY (.0..7.) OF INTEGER;
+ TYPE PROCESSREF =
+   @PROCESS;
+ TYPE PROCESSQUEUE =
+   SEQUENCE OF PROCESSREF;
+"###################################
+                       #  NEWCORE  #
+###################################"
+ VAR NEWCORE:
+ CLASS
+ CONST SPACE = GATES*GATELENG +
+               PROCESSES*PROCESSLENG
+       SPACELIMIT =
+                 'SPACE LIMIT(:0:)';
+       BASEADDR = ...;
+ VAR TOP: INTEGER;
+     FREE: INTEGER;
+ FUNCTION NEW(LENGTH: INTEGER):
+                            INTEGER;
+ BEGIN
+   IF LENGTH > FREE THEN
+     KERNELERROR(SPACELIMIT);
+   NEW := TOP;
+   TOP :+ LENGTH;
+   FREE :- LENGTH;
+ END;
+ BEGIN
+   TOP := BASEADDR;
+   FREE := SPACE;
+ END;
+"###################################
+                     #  QUEUETYPE  #
+###################################"
+ TYPE QUEUETYPE =
+ CLASS
+ VAR
+   SUCC:
+         @QUEUETYPE;
+   PRED:
+         @QUEUETYPE;
+ FUNCTION GET: @QUEUETYPE;
+ VAR FIRST, SECOND: @QUEUETYPE;
+ BEGIN
+   FIRST := SUCC;
+   SECOND := FIRST.SUCC;
+   SUCC := SECOND;
+   SECOND.PRED := FIRST.PRED;
+   GET := FIRST;
+ END;
+ PROCEDURE PUT(NEWELEM:
+                       @QUEUETYPE);
+ VAR LAST: @QUEUETYPE;
+ BEGIN
+   LAST := PRED;
+   PRED := NEWELEM;
+   NEWELEM.PRED := LAST;
+   NEWELEM.SUCC := LAST.SUCC;
+   LAST.SUCC := NEWELEM;
+ END;
+ FUNCTION ANY: BOOLEAN;
+ BEGIN
+   ANY := SUCC <> THIS QUEUETYPE;
+ END;
+ FUNCTION EMPTY: BOOLEAN;
+   EMPTY := SUCC = THIS QUEUETYPE;
+ END;
+ BEGIN
+   SUCC := THIS QUEUETYPE;
+   PRED := THIS QUEUETYPE;
+ END;
+"###################################
+                        #  SIGNAL  #
+###################################"
+ TYPE SIGNAL =
+ CLASS
+ VAR AWAITING: PROCESSQUEUE;
+ PROCEDURE AWAIT;
+ BEGIN
+   AWAITING.PUT(RUNNING.PREEMPTED);
+ END;
+ PROCEDURE SEND;
+ BEGIN
+   IF AWAITING.ANY THEN
+   BEGIN
+     REPEAT
+       READY.ENTER(AWAITING.GET);
+     UNTIL AWAITING.EMPTY;
+     READY.RESCHEDULE;
+   END;
+ END;
+ BEGIN
+   AWAITING.INITIALIZE;
+ END "OF SIGNAL";
+"###################################
+                          #  TIME  #
+###################################"
+ TYPE TIME =
+ CLASS
+ VAR ENTRY
+   SEC:
+        INTEGER;
+   FRACTION:
+             INTEGER; "FRACTION
+     UNIT = 0.1 MILLISECOND"
+ PROCEDURE ADD(INCR: INTEGER);
+ BEGIN
+   FRACTION :+ INCR;
+   IF FRACTION >= 10000 THEN
+   BEGIN
+     SEC :+ 1;
+     FRACTION :- 10000;
+   END;
+ END;
+ BEGIN
+   SEC := 0;
+   FRACTION := 0;
+ END;
+"###################################
+                         #  TIMER  #
+###################################"
+ VAR TIMER:
+ CLASS
+ CONST SMALLINCR = 10;
+       LARGEINCR = 167;
+ VAR PERIOD: INTEGER;
+ FUNCTION ELAPSED: INTEGER;
+ BEGIN
+   ELAPSED := PERIOD + SMALLINCR;
+   PERIOD := 0;
+ END;
+ PROCEDURE TICK(INTERVAL: INTEGER);
+ BEGIN
+   PERIOD :+ LARGEINCR;
+ END;
+ PROCEDURE RESET;
+ BEGIN
+   PERIOD := 0;
+ END;
+ BEGIN
+   PERIOD := 0;
+ END;
+"###################################
+                         #  CLOCK  #
+###################################"
+ VAR CLOCK:
+ CLASS
+ CONST WAITTIME = 1;
+ VAR NOW: TIME;
+     NEXTTIME: SIGNAL;
+ PROCEDURE INCREMENT(INTERVAL:
+                        INTEGER);
+ VAR P: PROCESSREF;
+     LASTTIME: INTEGER;
+ BEGIN
+   LASTTIME := NOW.SEC;
+   NOW.ADD(INTERVAL);
+   IF NOW.SEC >=
+            LASTTIME + WAITTIME THEN
+   NEXTTIME.SEND;
+ END;
+ PROCEDURE ENTRY WAIT;
+ BEGIN
+   NEXTTIME.AWAIT;
+ END;
+ FUNCTION ENTRY REALTIME: INTEGER;
+ BEGIN
+   REALTIME := NOW.SEC;
+ END;
+ BEGIN
+   NOW.INITIALIZE;
+   NEXTTIME.INITIALIZE;
+ END;
+"###################################
+               #  CLOCK INTERRUPT  #
+###################################"
+ PROCEDURE ENTRY CLOCKINTERRUPT;
+ CONST INTERVAL = 167;
+        "UNIT = 0.1 MILLISECOND"
+ BEGIN
+   TIMER.TICK(INTERVAL);
+   CLOCK.INCREMENT(INTERVAL);
+   READY.RESCHEDULE;
+ END;
+"###################################
+                          #  CORE  #
+###################################"
+ VAR CORE:
+ CLASS
+ CONST CORELIMIT =
+                  'CORE LIMIT(:0:)';
+       CORECAPACITY = 1536 "BLOCKS";
+             " = 48 KILOWORDS"
+ VAR TOP "BLOCK": INTEGER;
+     FREE "BLOCKS": INTEGER;
+ PROCEDURE ALLOC(LENGTH: INTEGER;
+              VAR FIRST: INTEGER);
+ VAR BLOCKS: INTEGER;
+ BEGIN
+   BLOCKS := (LENGTH + 63) DIV 64;
+   IF BLOCKS > FREE THEN
+     KERNELERROR(CORELIMIT);
+   FIRST := TOP;
+   TOP :+ BLOCKS;
+   FREE :- BLOCKS;
+ END;
+ BEGIN
+   TOP := HEADADDR DIV 64;
+   FREE := CORECAPACITY - TOP;
+ END;
+"###################################
+                       #  VIRTUAL  #
+###################################"
+ VAR VIRTUAL:
+ CLASS
+ CONST VIRTUALLIMIT =
+               'VIRTUAL LIMIT(:0:)';
+ VAR HARDWAREMAP: MAPTYPE;
+     COMMON: INTEGER;
+     ENTRY HEAPTOP: INTEGER;
+ PROCEDURE DEFCOMMON(LENGTH:
+                           INTEGER);
+ VAR BASE: INTEGER;
+     PAGE: INTEGER;
+ BEGIN
+   CORE.ALLOC(LENGTH, BASE);
+   COMMON := (LENGTH + 8191) DIV
+                               8192;
+   IF COMMON > 8 THEN
+     KERNELERROR(VIRTUALLIMIT);
+   FOR PAGE := 0 TO COMMON - 1 DO
+   BEGIN
+     HARDWAREMAP(.PAGE.) := BASE;
+     BASE :+ 128;
+   END;
+   HEAPTOP := COMMON * 8192;
+ END;
+ PROCEDURE DEFPRIVATE(LENGTH:
+                           INTEGER);
+ VAR BASE: INTEGER;
+     PAGE: INTEGER;
+     TOTAL: INTEGER;
+ BEGIN
+   CORE.ALLOC(LENGTH, BASE);
+   TOTAL := (LENGTH + 8191) DIV 8192
+            + COMMON;
+   IF TOTAL > 8 THEN
+     KERNELERROR(VIRTUALLIMIT);
+   FOR PAGE := COMMON TO TOTAL - 1
+   DO
+   BEGIN
+     HARDWAREMAP(.PAGE.) := BASE;
+     BASE :+ 128;
+   END;
+ END;
+ PROCEDURE GETMAP(P: PROCESSREF);
+ VAR PAGE: INTEGER;
+ BEGIN
+   FOR PAGE := COMMON TO 7 DO
+   WITH P@ DO
+   HARDWAREMAP(.PAGE.) :=
+                       MAP(.PAGE.);
+ END;
+ PROCEDURE PUTMAP;
+ VAR PAGE: INTEGER;
+ BEGIN
+   FOR PAGE := COMMON TO 7 DO
+   WITH RUNNING.USER@ DO
+   MAP(.PAGE.) :=
+               HARDWAREMAP(.PAGE.);
+ END;
+ PROCEDURE REALADDRESS(
+            VIRTUALADDRESS: ADDRESS;
+            VAR PREFIX: 0..3;
+            VAR REST: ADDRESS);
+ TYPE LONGADDRESS = 0..262143;
+ VAR AD: ADDRESS;
+     I: 0..7;
+     RAD: LONGADDRESS;
+ BEGIN
+   AD := VIRTUALADDRESS;
+   I := AD DIV 8192;
+   "I=PAGENUMBER(VIRTUALADDRESS)"
+   AD := AD MOD 8192;
+   "AD=BYTE NUMBER IN PAGE"
+   RAD := AD + HARDWAREMAP(.I.)*64;
+   "RAD=REAL ADDRESS OF BYTE"
+   PREFIX := RAD DIV 65536;
+   REST := RAD MOD 65536;
+ END;
+ BEGIN
+ END;
+"###################################
+                       #  RUNNING  #
+###################################"
+ VAR RUNNING:
+ CLASS
+ CONST PARAMLIMIT =
+             'PARAMETER LIMIT(:0:)';
+       MAX = 20;
+       FLOATSTATUS = ...;
+       PROGSTATUS = ...;
+       STARTADDR = ...;
+ VAR ENTRY
+   USER: PROCESSREF;
+     ENTRY
+   HEAD: HEADTYPE;
+   CONSTADDR: INTEGER;
+   PARAM: ARRAY (.1..MAX.) OF
+                            INTEGER;
+   NEXTINDEX: INTEGER;
+     ENTRY
+   PROCESSID: ARRAY (.1..PROCESSES.)
+                      OF PROCESSREF;
+ "HARDWARE"
+   REG: REGTYPE;
+ PROCEDURE SERVE(P: PROCESSREF);
+ BEGIN
+   TIMER.RESET;
+   USER := P;
+   HEAD := USER@.HEAD;
+   REG := USER@.REG;
+   VIRTUAL.GETMAP(USER);
+   WITH HEAD DO
+   IF NESTING = 0 THEN
+   OVERTIME := FALSE;
+ END;
+ FUNCTION PREEMPTED: PROCESSREF;
+ BEGIN
+   UPDATE;
+   USER@.HEAD := HEAD;
+   USER@.REG := REG;
+   PREEMPTED := USER;
+   USER := NIL;
+ END;
+ PROCEDURE UPDATE;
+ CONST MAXSLICE = 167;
+ VAR NEWSLICE: INTEGER;
+ BEGIN
+   WITH HEAD DO
+   BEGIN
+     SLICE :+ TIMER.ELAPSED;
+     IF SLICE >= MAXSLICE THEN
+     BEGIN
+       NEWSLICE :=
+                 SLICE MOD MAXSLICE;
+       RUNTIME.ADD(SLICE -
+                          NEWSLICE);
+       SLICE := NEWSLICE;
+       OVERTIME := TRUE;
+       IF NESTING = 0 THEN
+       PRIORITY := 2;
+     END;
+   END;
+ END;
+ PROCEDURE ENTER;
+ BEGIN
+   WITH HEAD DO
+   BEGIN
+     NESTING :+ 1;
+     PRIORITY := 0;
+   END;
+ END;
+ PROCEDURE LEAVE;
+ BEGIN
+ WITH HEAD DO
+   BEGIN
+     NESTING :- 1;
+     IF NESTING = 0 THEN
+     BEGIN
+       PRIORITY := 2;
+       READY.RESCHEDULE;
+     END;
+   END;
+ END;
+ PROCEDURE STARTIO;
+ BEGIN
+   WITH HEAD DO
+   IF NESTING = 0 THEN
+   PRIORITY := 1;
+ END;
+ PROCEDURE POPPARAM(PARAMLENGTH:
+                           INTEGER);
+ VAR I: INTEGER;
+ BEGIN
+   IF PARAMLENGTH > MAX THEN
+     KERNELERROR(PARAMLIMIT);
+   FOR I := 1 TO PARAMLENGTH DO
+   POP(PARAM(.I.), REG.S);
+ END;
+ PROCEDURE INITCHILD(PARAMLENGTH,
+                     VARLENGTH,
+                     STACKLENGTH,
+                     QVALUE:
+                           INTEGER);
+ VAR LENGTH: INTEGER;
+     I: INTEGER;
+ BEGIN
+   USER := NEW(PROCESS);
+   PROCESSID(.NEXTINDEX.) := USER;
+   LENGTH := PARAMLENGTH +
+             VARLENGTH +
+             STACKLENGTH +
+             2;
+   IF LENGTH > 65535 THEN
+     KERNELERROR(VIRTUALLIMIT);
+   VIRTUAL.DEFPRIVATE(LENGTH);
+   WITH HEAD DO
+   BEGIN
+     INDEX := NEXTINDEX;
+     NEXTINDEX :+ 1;
+     HEAPTOP := VIRTUAL.HEAPTOP;
+     RUNTIME.INITIALIZE;
+     SLICE := 0;
+     NESTING := 0;
+     PRIORITY := 2;
+     OVERTIME := FALSE;
+     JOB := FALSE "0";
+     CONTINUE := TRUE "10";
+   END;
+   WITH REG DO
+   BEGIN
+     S := HEAD.HEAPTOP + LENGTH;
+     FOR I := PARAMLENGTH DOWNTO 1
+     DO
+     PUSH(PARAM(.I.), S);
+     S :- 2;
+     G := S;
+     S :- (VARLENGTH + 2);
+     B := S;
+     Q := QVALUE;
+     FSTATUS := FLOATSTATUS;
+     PSTATUS := PROGSTATUS;
+     P := STARTADDR;
+   END;
+   VIRTUAL.PUTMAP;
+   READY.RESCHEDULE;
+ END;
+ PROCEDURE INITPARENT(
+        INTERPRETERLENGTH: INTEGER);
+ VAR PROGADDR,
+     PROGLENGTH,
+     CODELENGTH,
+     STACKLENGTH,
+     VARLENGTH,
+     LENGTH: INTEGER;
+ BEGIN
+   HEAD.LINE := 0;
+   PROGADDR := HEADADDR +
+               INTERPRETERLENGTH;
+   GETDATA(PROGADDR,
+           PROGLENGTH,
+           CODELENGTH,
+           STACKLENGTH,
+           VARLENGTH);
+   USER := NEW(PROCESS);
+   PROCESSID(.NEXTINDEX.) := USER;
+   WITH HEAD DO
+   BEGIN
+     INDEX := NEXTINDEX;
+     NEXTINDEX :+ 1;
+     HEAPTOP := INTERPRETERLENGTH +
+                PROGLENGTH;
+     LENGTH := HEAPTOP + STACKLENGTH
+                       + VARLENGTH
+                       + 2;
+     IF LENGTH > 65535 THEN
+       KERNELERROR(VIRTUALLIMIT);
+     VIRTUAL.DEFCOMMON(LENGTH);
+     RUNTIME.INITIALIZE;
+     SLICE := 0;
+     NESTING := 0;
+     PRIORITY := 2;
+     OVERTIME := FALSE;
+     JOB := FALSE "0";
+     CONTINUE := TRUE "10";
+   END;
+   WITH REG DO
+   BEGIN
+     S := LENGTH - 2;
+     G := S;
+     S :- (VARLENGTH + 2);
+     B := S;
+     Q := INTERPRETERLENGTH + 8;
+     FSTATUS := FLOATSTATUS;
+     PSTATUS := PROGSTATUS;
+     P := STARTADDR;
+     CONSTADDR := Q + CODELENGTH;
+   END;
+ END;
+ PROCEDURE ENTRY SYSTEMERROR;
+ CONST TERMINATED =
+                  'TERMINATED(:0:)';
+       OVERFLOWERROR =
+              'OVERFLOW ERROR(:0:)';
+       POINTERERROR =
+               'POINTER ERROR(:0:)';
+       RANGEERROR =
+                 'RANGE ERROR(:0:)';
+       VARIANTERROR =
+               'VARIANT ERROR(:0:)';
+       HEAPLIMIT =
+                  'HEAP LIMIT(:0:)';
+       STACKLIMIT =
+                 'STACK LIMIT(:0:)';
+ VAR TEXT: LINE;
+ BEGIN
+   CASE HEAD.RESULT OF
+     0: TEXT := TERMINATED;
+     1: TEXT := OVERFLOWERROR;
+     2: TEXT := POINTERERROR;
+     3: TEXT := RANGEERROR;
+     4: TEXT := VARIANTERROR;
+     5: TEXT := HEAPLIMIT;
+     6: TEXT := STACKLIMIT;
+   END;
+   KERNELERROR(TEXT);
+ END;
+ PROCEDURE ENTRY REALINTERRUPT;
+ CONST REALINTERRUPTADDR = ...;
+ BEGIN
+   REG.P := REALINTERRUPTADDR;
+ END;
+ BEGIN
+   NEXTINDEX := 1;
+ END "OF RUNNING";
+"###################################
+         #  INIT/END/STOP PROCESS  #
+###################################"
+ PROCEDURE ENTRY INITPROCESS(
+                   PARAMLENGTH,
+                   VARLENGTH,
+                   STACKLENGTH,
+                   QVALUE: INTEGER);
+ BEGIN
+   RUNNING.POPPARAM(PARAMLENGTH);
+   READY.ENTER(RUNNING.PREEMPTED);
+   RUNNING.INITCHILD(PARAMLENGTH,
+                     VARLENGTH,
+                     STACKLENGTH,
+                     QVALUE);
+ END;
+ PROCEDURE ENTRY ENDPROCESS;
+ VAR PROC: PROCESSREF;
+ BEGIN
+   PROC := RUNNING.PREEMPTED;
+ END;
+ PROCEDURE ENTRY STOPJOB(
+                      P,
+                      WHY: INTEGER);
+ VAR PROC: PROCESSREF;
+     HEAD: @HEADTYPE;
+ BEGIN
+   PROC := RUNNING.PROCESSID(.P.);
+   IF PROC = RUNNING.USER
+     THEN HEAD := @RUNNING.HEAD
+     ELSE HEAD := @PROC@.HEAD;
+   WITH HEAD@ DO
+   BEGIN
+     RESULT := WHY;
+     CONTINUE := FALSE "0";
+   END;
+ END;
+"###################################
+                         #  READY  #
+###################################"
+ VAR READY:
+ CLASS
+ VAR TOP,
+     MIDDLE,
+     BOTTOM: PROCESSQUEUE;
+     IDLING: BOOLEAN;
+ PROCEDURE ENTER(P: PROCESSREF);
+ BEGIN
+   CASE P@.HEAD.PRIORITY OF
+     0: TOP.PUT(P);
+     2: BOTTOM.PUT(P);
+     1: MIDDLE.PUT(P);
+   END;
+ END;
+ PROCEDURE SELECT;
+ VAR Q: @PROCESSQUEUE;
+ BEGIN
+   IF NOT IDLING THEN
+   BEGIN
+     REPEAT
+       Q := @TOP;
+       IF Q@.EMPTY THEN
+       BEGIN
+         Q := @MIDDLE;
+         IF Q@.EMPTY THEN
+         BEGIN
+           Q := @BOTTOM;
+           IF Q@.EMPTY THEN
+           BEGIN
+             IDLING := TRUE;
+             IDLE;
+             IDLING := FALSE;
+             Q := NIL;
+           END;
+         END;
+       END;
+     UNTIL (RUNNING.USER <> NIL) OR
+                         (Q <> NIL);
+     IF (RUNNING.USER = NIL) THEN
+     RUNNING.SERVE(Q@.GET);
+   END;
+ END;
+ PROCEDURE RESCHEDULE;
+ BEGIN
+   WITH RUNNING, HEAD DO
+   IF USER <> NIL THEN
+   BEGIN
+     UPDATE;
+     IF PRIORITY > 0 THEN
+     IF
+       TOP.ANY OR
+       OVERTIME OR
+       (PRIORITY = 2 AND
+        MIDDLE.ANY) THEN
+     ENTER(PREEMPTED);
+   END;
+ END;
+ PROCEDURE ENDIO;
+ BEGIN
+   RESCHEDULE;
+   WITH RUNNING DO
+   IF USER <> NIL THEN
+   VIRTUAL.GETMAP(USER);
+ END;
+ BEGIN
+   TOP.INITIALIZE;
+   MIDDLE.INITIALIZE;
+   BOTTOM.INITIALIZE;
+   IDLING := FALSE;
+ END "OF READY";
+"###################################
+                          #  GATE  #
+###################################"
+ TYPE GATE =
+ CLASS
+ VAR OPEN:
+           BOOLEAN;
+     WAITING:
+              PROCESSQUEUE;
+ PROCEDURE ENTRY ENTER;
+ BEGIN
+   RUNNING.ENTER;
+   IF OPEN THEN
+     OPEN := FALSE ELSE
+     WAITING.PUT(RUNNING.PREEMPTED);
+ END;
+ PROCEDURE ENTRY LEAVE;
+ VAR P: PROCESSREF;
+ BEGIN
+   IF NOT WAITING.ANY THEN
+     OPEN := TRUE ELSE
+     BEGIN
+       P := WAITING.GET;
+       READY.ENTER(P);
+     END;
+   RUNNING.LEAVE;
+ END;
+ PROCEDURE ENTRY DELAY(VAR Q:
+                        PROCESSREF);
+ VAR P: PROCESSREF;
+ BEGIN
+   Q := RUNNING.PREEMPTED;
+   IF WAITING.ANY THEN
+   BEGIN
+     P := WAITING.GET;
+     READY.ENTER(P);
+   END ELSE
+   OPEN := TRUE;
+ END;
+ PROCEDURE ENTRY CONTINUE(VAR Q:
+                        PROCESSREF);
+ VAR P: PROCESSREF;
+ BEGIN
+   P := Q;
+   IF P = NIL THEN
+   LEAVE ELSE
+   BEGIN
+     Q := NIL;
+     READY.ENTER(P);
+     RUNNING.LEAVE;
+   END;
+ END;
+ BEGIN
+   RUNNING.ENTER;
+   OPEN := FALSE;
+   WAITING.INITIALIZE;
+ END "OF GATE";
+ PROCEDURE ENTRY INITGATE(VAR G: @
+                              GATE);
+ BEGIN
+   G := NEW(GATE);
+   G@.INITIALIZE;
+ END;
+"###################################
+                #  I/O DATA TYPES  #
+###################################"
+ TYPE BUFFERTYPE = ANYTYPE;
+ TYPE IODEVICE = (
+                  TTY0,
+                  DISK0,
+                  TAPE90,
+                  PRINTER0,
+                  CARDREADER0,
+                  TAPE91
+                 );
+ TYPE IOOPERATION = (
+                     INPUT,
+                     OUTPUT,
+                     MOVE,
+                     CONTROL
+                    );
+ TYPE IORESULT = (
+                  COMPLETE,
+                  INTERVENTION,
+                  TRANSMISSION,
+                  FAILURE,
+                  ENDFILE,
+                  ENDMEDIUM,
+                  STARTMEDIUM
+                 );
+ TYPE IOMOVE = (
+                OUTEOF,
+                REWIND,
+                UPSPACE,
+                BACKSPACE,
+                UNLOAD
+               );
+ TYPE IOPARAM =
+   RECORD
+     OPERATION:
+                IOOPERATION;
+     STATUS:
+             IORESULT;
+     MODIFIER:
+               UNIV INTEGER;
+   END;
+ TYPE UNITTYPE = 0..7;
+"###################################
+               #  MISSING DEVICES  #
+###################################"
+ PROCEDURE IOFAIL(VAR PARAM:
+                          @IOPARAM);
+ BEGIN
+   PARAM@.STATUS := FAILURE;
+ END;
+ FUNCTION DEVICEPRESENT(DEVREG:
+                 @INTEGER): BOOLEAN;
+ ON NONEXISTENTMEMORYTRAP DO
+   DEVICEPRESENT := FALSE;
+ BEGIN
+   DEVICEPRESENT := TRUE;
+   IF DEVREG@ = 0 THEN ;
+ END;
+"###################################
+                      #  TM11TAPE  #
+###################################"
+ VAR TM11TAPE:  "9-TRACK TAPES ONLY"
+ CLASS
+ CONST IOCOUNT = -512;
+       SPACECOUNT = -1;
+ TYPE FUNCTYPE = (
+                  OFFLINE,
+                  READ,
+                  WRITE,
+                  WRITEEOF,
+                  FORWARDSPACE,
+                  BACKWARDSPACE,
+                  WRITEGAP,
+                  REWINDTAPE
+                 );
+ TYPE TAPEDENSITY = (
+                     ST200,
+                     ST556,
+                     ST800,
+                     NT800
+                    );
+ TYPE TAPECOMMAND =
+   PACKED RECORD
+     ERROR: BOOLEAN;
+     DENSITY: TAPEDENSITY;
+     POWERCLEAR: BOOLEAN;
+     EVENPARITY: BOOLEAN;
+     UNIT: UNITTYPE;
+     READY: BOOLEAN;
+     INTERRUPT: BOOLEAN;
+     ADDRBITS: 0..3;
+     FUNC: FUNCTYPE;
+     GO: BOOLEAN;
+   END;
+ VAR UNITS: ARRAY (.UNITTYPE.) OF
+                        TAPECOMMAND;
+     FUNCTABLE: ARRAY
+        (.IOOPERATION.) OF FUNCTYPE;
+     MOVETABLE: ARRAY (.IOMOVE.) OF
+                           FUNCTYPE;
+     USER: PROCESSREF;
+     ADDR: @IORESULT;
+ VAR ENTRY
+     CONNECTED: BOOLEAN;
+ "HARDWARE"
+     STATUSREG:
+       PACKED RECORD
+         ILLEGALCOMMAND,
+         ENDOFFILE,
+         CYCLICREDUNDANCY,
+         PARITYERROR,
+         BUSGRANTLATE,
+         ENDOFTAPE,
+         RECORDLENGTH,
+         BADTAPE,
+         NONEXISTENTMEMORY,
+         SELECTREMOTE,
+         BEGINNINGOFTAPE,
+         SEVENCHANNEL,
+         SETTLEDOWN,
+         FILEPROTECT,
+         REWINDING,
+         TAPEUNITREADY: BOOLEAN;
+       END;
+     COMMANDREG: TAPECOMMAND;
+     COUNTREG: INTEGER;
+     ADDRREG: ADDRESS;
+ PROCEDURE INITIO(VAR BUF:
+                        @BUFFERTYPE;
+                  VAR COM: @IOPARAM;
+                  UNITNUMBER:
+                          UNITTYPE);
+ VAR OPER: IOOPERATION;
+     SKELETON: TAPECOMMAND;
+     MOVER: IOMOVE;
+     PREFIX: 0..3;
+ BEGIN
+   OPER := COM@.OPERATION;
+   ADDR := @COM@.STATUS;
+   SKELETON := UNITS(.UNITNUMBER.);
+   WITH SKELETON DO
+   BEGIN
+     IF OPER <> CONTROL THEN
+       BEGIN
+         CASE OPER OF
+           INPUT, OUTPUT:
+           BEGIN
+             FUNC :=
+                  FUNCTABLE(.OPER.);
+             VIRTUAL.REALADDRESS(
+                           BUF,
+                           PREFIX,
+                           ADDRREG);
+             ADDRBITS := PREFIX;
+             COUNTREG := IOCOUNT;
+           END;
+           MOVE:
+           BEGIN
+             MOVER := COM@.MODIFIER;
+             FUNC :=
+                 MOVETABLE(.MOVER.);
+             COUNTREG := SPACECOUNT;
+           END;
+         END;
+         COMMANDREG := SKELETON;
+         USER := RUNNING.PREEMPTED;
+       END ELSE
+       BEGIN "OPER = CONTROL"
+         COM@.STATUS := COMPLETE;
+       END;
+   END;
+ END "OF INITIO";
+ PROCEDURE INTERRUPT;
+ VAR RESULT: IORESULT;
+ BEGIN
+   IF USER <> NIL THEN
+   BEGIN
+     WITH COMMANDREG, STATUSREG DO
+     BEGIN
+       READY.ENTER(USER);
+       IF NOT ERROR THEN
+         IF ENDOFFILE THEN
+           RESULT := ENDFILE ELSE
+           IF ENDOFTAPE THEN
+             RESULT := ENDMEDIUM
+                                ELSE
+             IF BEGINNINGOFTAPE THEN
+               RESULT := STARTMEDIUM
+                                ELSE
+               RESULT := COMPLETE
+         ELSE "ERROR"
+         IF RECORDLENGTH OR
+            NONEXISTENTMEMORY THEN
+           RESULT := FAILURE ELSE
+           IF ILLEGALCOMMAND THEN
+             RESULT := INTERVENTION
+                                ELSE
+             IF CYCLICREDUNDANCY OR
+                PARITYERROR OR
+                BADTAPE OR
+                BUSGRANTLATE THEN
+               RESULT :=
+                   TRANSMISSION ELSE
+               IF ENDOFFILE THEN
+                 RESULT := ENDFILE
+                                ELSE
+                 RESULT :=
+                          ENDMEDIUM;
+       VIRTUAL.GETMAP(USER);
+       ADDR@ := RESULT;
+       USER := NIL;
+       READY.ENDIO;
+     END;
+   END;
+ END "OF INTERRUPT";
+ PROCEDURE INITIALIZE;
+ VAR I: UNITTYPE;
+ BEGIN
+   USER := NIL;
+   FOR I := 0 TO 7 DO
+     WITH UNITS(.I.) DO
+     BEGIN
+       ERROR := FALSE;
+       DENSITY := NT800;
+       POWERCLEAR := FALSE;
+       EVENPARITY := FALSE;
+       UNIT := 2;
+       READY := FALSE;
+       INTERRUPT := TRUE;
+       ADDRBITS := 0;
+       FUNC := OFFLINE;
+       GO := TRUE;
+     END;
+   FUNCTABLE(.INPUT.) := READ;
+   FUNCTABLE(.OUTPUT.) := WRITE;
+   MOVETABLE(.OUTEOF.) := WRITEEOF;
+   MOVETABLE(.REWIND.) :=
+                         REWINDTAPE;
+   MOVETABLE(.UPSPACE.) :=
+                       FORWARDSPACE;
+   MOVETABLE(.BACKSPACE.) :=
+                      BACKWARDSPACE;
+   MOVETABLE(.UNLOAD.) := OFFLINE;
+ END "OF INITIALIZE";
+ BEGIN
+   CONNECTED := DEVICEPRESENT(
+                         STATUSREG);
+   IF CONNECTED THEN
+     INITIALIZE;
+ END "OF TM11TAPE";
+"###################################
+                      #  RK11DISK  #
+###################################"
+ VAR RK11DISK:
+ CLASS
+ CONST IOCOUNT = -256;
+ TYPE FUNCTYPE = (
+                  CONTROLRESET,
+                  WRITE,
+                  READ,
+                  WRITECHECK,
+                  SEEK,
+                  READCHECK,
+                  DRIVERESET,
+                  WRITELOCK
+                 );
+ TYPE DISKCONTROL = (
+                     LOAD
+                    );
+ TYPE DISKCOMMAND =
+   PACKED RECORD
+     ERROR,
+     HARDERROR,
+     SEARCHCOMPLETE,
+     INHIBITINCREMENT,
+     FORMAT,
+     STOPONSOFTERROR,
+     CONTROLREADY,
+     INTERRUPT: BOOLEAN;
+     ADDRBITS: 0..3;
+     FUNC: FUNCTYPE;
+     GO: BOOLEAN;
+   END;
+ TYPE DISKADDRESS =
+   PACKED RECORD
+     DRIVE: UNITTYPE;
+     CYLINDER: 0..199;
+     SURFACE: 0..1;
+     SECTOR: 0..11;
+   END;
+ VAR FUNCTABLE: ARRAY
+        (.IOOPERATION.) OF FUNCTYPE;
+     USER: PROCESSREF;
+     ADDR: @IORESULT;
+ VAR ENTRY
+     CONNECTED: BOOLEAN;
+ "HARDWARE"
+     ERRORREG:
+       PACKED RECORD
+         DRIVEERROR,
+         OVERRUN,
+         WRITEVIOLATION,
+         SEEKERROR,
+         PROGRAMERROR,
+         NONEXISTENTMEMORY,
+         DATALATE,
+         TIMINGERROR,
+         NONEXISTENTDISK,
+         NONEXISTENTCYLINDER,
+         NONEXISTENTSECTOR,
+         CHECKSUMERROR,
+         WRITECHECKERROR: BOOLEAN;
+       END;
+     COMMANDREG: DISKCOMMAND;
+     COUNTREG: INTEGER;
+     ADDRREG: ADDRESS;
+     SEARCHREG: DISKADDRESS;
+ PROCEDURE INITIO(VAR BUF:
+                        @BUFFERTYPE;
+                  VAR COM: @IOPARAM;
+                  UNITNUMBER:
+                          UNITTYPE);
+ VAR OPER: IOOPERATION;
+     IOARG: UNIV INTEGER;
+     BLOCK: 0..4799;
+     DISKADDR: DISKADDRESS;
+     DISKFUNC: DISKCOMMAND;
+     PREFIX: 0..3;
+ BEGIN
+   OPER := COM@.OPERATION;
+   ADDR := @COM@.STATUS;
+   IOARG := COM@.MODIFIER;
+   WITH DISKADDR, DISKFUNC DO
+   CASE OPER OF
+     INPUT, OUTPUT:
+     BEGIN
+       DISKFUNC :=
+                  FUNCTABLE(.OPER.);
+       VIRTUAL.REALADDRESS(BUF,
+                           PREFIX,
+                           ADDRREG);
+       ADDRBITS := PREFIX;
+       COUNTREG := IOCOUNT;
+       BLOCK := IOARG;
+       SECTOR := BLOCK MOD 12;
+       BLOCK := BLOCK DIV 12;
+       SURFACE := BLOCK MOD 2;
+       DRIVE := UNITNUMBER;
+       CYLINDER := BLOCK DIV 2;
+       SEARCHREG := DISKADDR;
+       COMMANDREG := DISKFUNC;
+       USER := RUNNING.PREEMPTED;
+     END;
+     MOVE:
+     COM@.STATUS := COMPLETE;
+     CONTROL:
+     KERNEL.INITIALIZE(IOARG);
+   END;
+ END "OF INITIO";
+ PROCEDURE INTERRUPT;
+ VAR RESULT: IORESULT;
+ BEGIN
+   IF USER <> NIL THEN
+     WITH COMMANDREG, ERRORREG DO
+     BEGIN
+       READY.ENTER(USER);
+       IF NOT HARDERROR THEN
+         IF ERROR THEN
+           RESULT := TRANSMISSION
+           ELSE RESULT := COMPLETE
+         ELSE "HARDERROR"
+         IF OVERRUN OR
+            PROGRAMERROR OR
+            NONEXISTENTMEMORY OR
+            NONEXISTENTDISK OR
+            NONEXISTENTCYLINDER OR
+            NONEXISTENTSECTOR THEN
+           RESULT := FAILURE ELSE
+           IF DRIVEERROR OR
+              WRITEVIOLATION THEN
+             RESULT := INTERVENTION
+                                ELSE
+             IF SEEKERROR OR
+                TIMINGERROR OR
+                DATALATE THEN
+               RESULT :=
+                       TRANSMISSION;
+       IF RESULT <> COMPLETE THEN
+         BEGIN
+           FUNC := CONTROLRESET;
+           INTERRUPT := FALSE;
+           GO := TRUE;
+           REPEAT UNTIL
+                       CONTROLREADY;
+         END;
+       VIRTUAL.GETMAP(USER);
+       ADDR@ := RESULT;
+       USER := NIL;
+       READY.ENDIO;
+     END;
+ END "OF INTERRUPT";
+ PROCEDURE INITIALIZE;
+ BEGIN
+   USER := NIL;
+   WITH FUNCTABLE(.INPUT.) DO
+   BEGIN
+     INTERRUPT := TRUE;
+     FUNC := READ;
+     GO := TRUE;
+     INHIBITINCREMENT := FALSE;
+     FORMAT := FALSE;
+     STOPONSOFTERROR := FALSE;
+     ADDRBITS := 0;
+   END;
+   WITH FUNCTABLE(.OUTPUT.) DO
+   BEGIN
+     INTERRUPT := TRUE;
+     FUNC := WRITE;
+     GO := TRUE;
+     INHIBITINCREMENT := FALSE;
+     FORMAT := FALSE;
+     STOPONSOFTERROR := FALSE;
+     ADDRBITS := 0;
+   END;
+ END "OF INITIALIZE";
+ BEGIN
+   CONNECTED := DEVICEPRESENT(
+                          ERRORREG);
+   IF CONNECTED THEN
+     INITIALIZE;
+ END "OF RK11DISK";
+"###################################
+                  #  LT33TERMINAL  #
+###################################"
+ VAR LT33TERMINAL:
+ CLASS
+ CONST BELCHAR = '(:7:)';
+       LFCHAR = '(:10:)';
+       CRCHAR = '(:13:)';
+ TYPE TERMINALSTATE = (
+                       PASSIVE,
+                       READING,
+                       WRITING
+                      );
+ TYPE TERMCONTROL = (
+                     WAITFORBELL
+                    );
+ TYPE STATUSTYPE =
+   PACKED RECORD
+     BUSY,
+     DONE,
+     INTERRUPT,
+     GO: BOOLEAN;
+   END;
+ VAR ENTRY
+     STATE: TERMINALSTATE;
+ VAR BELL: SIGNAL;
+     CHARADDR: @BUFFERTYPE;
+     USER: PROCESSREF;
+     OUTLF: BOOLEAN;
+     ECHO: BOOLEAN;
+     INCHAR: CHAR;
+ VAR ENTRY
+     CONNECTED: BOOLEAN;
+ "HARDWARE"
+     READREGS:
+         PACKED RECORD
+         READSTATUS: STATUSTYPE;
+         READBUF: CHAR;
+       END;
+     WRITEREGS:
+       PACKED RECORD
+         WRITESTATUS: STATUSTYPE;
+         WRITEBUF: CHAR;
+       END;
+ PROCEDURE WRITECHAR(CH: CHAR);
+ BEGIN
+   STATE := WRITING;
+   IF CH = LFCHAR THEN
+     BEGIN
+       OUTLF := TRUE;
+       WRITEBUF := CRCHAR;
+     END ELSE
+     WRITEBUF := CH;
+   WRITEREGS.WRITESTATUS.INTERRUPT
+                            := TRUE;
+ END;
+ PROCEDURE READINTERRUPT;
+ BEGIN
+   INCHAR := READBUF;
+   IF INCHAR = BELCHAR THEN
+     BELL.SEND ELSE
+     IF STATE = READING THEN
+       BEGIN
+         IF INCHAR = CRCHAR THEN
+           INCHAR := LFCHAR;
+         ECHO := TRUE;
+         WRITECHAR(INCHAR);
+       END;
+   READREGS.READSTATUS.GO := TRUE;
+ END;
+ PROCEDURE WRITEINTERRUPT;
+ BEGIN
+   IF STATE = WRITING THEN
+     BEGIN
+       IF OUTLF THEN
+         BEGIN
+           OUTLF := FALSE;
+           WRITEBUF := LFCHAR;
+         END ELSE
+         BEGIN
+           READY.ENTER(USER);
+           STATE := PASSIVE;
+           IF ECHO THEN
+             BEGIN
+               ECHO := FALSE;
+               VIRTUAL.GETMAP(USER);
+               CHARADDR@ := INCHAR;
+             END;
+           READY.ENDIO;
+         END;
+     END;
+ END;
+ PROCEDURE INITIO(VAR BUF:
+                        @BUFFERTYPE;
+                  VAR COM:
+                          @IOPARAM);
+ VAR OPER: IOOPERATION;
+ BEGIN
+   OPER := COM@.OPERATION;
+   COM@.STATUS := COMPLETE;
+   CASE OPER OF
+     INPUT, OUTPUT:
+     BEGIN
+       USER := RUNNING.PREEMPTED;
+       IF OPER = INPUT THEN
+         BEGIN
+           CHARADDR := BUF;
+           STATE := READING;
+         END ELSE
+         WRITECHAR(BUF@);
+     END;
+     CONTROL:
+       BELL.AWAIT;
+     MOVE: ;
+   END;
+ END;
+ PROCEDURE KERNELWRITE(CHR: CHAR);
+ BEGIN
+ WITH WRITEREGS, WRITESTATUS DO
+   BEGIN
+     REPEAT UNTIL DONE;
+     STATE := PASSIVE;
+     WRITEBUF := CHR;
+     REPEAT UNTIL DONE;
+     OUTLF := FALSE;
+     ECHO := FALSE;
+   END;
+ END;
+ PROCEDURE INITIALIZE;
+ BEGIN
+   BELL.INITIALIZE;
+   STATE := PASSIVE;
+   OUTLF := FALSE;
+   ECHO := FALSE;
+   WITH READREGS, READSTATUS DO
+   BEGIN
+     INTERRUPT := TRUE;
+     GO := TRUE;
+   END;
+   WRITEREGS.WRITESTATUS.INTERRUPT
+                           := FALSE;
+ END "OF INITIALIZE";
+ BEGIN
+   CONNECTED := DEVICEPRESENT(
+               READREGS.READSTATUS);
+   IF CONNECTED THEN
+   CONNECTED := DEVICEPRESENT(
+             WRITEREGS.WRITESTATUS);
+   IF CONNECTED THEN
+     INITIALIZE;
+ END "OF LT33TERMINAL";
+"###################################
+                   #  LPXXPRINTER  #
+###################################"
+ VAR LPXXPRINTER:
+ CLASS
+ TYPE LINE = ARRAY (.1..124.) OF
+                               CHAR;
+ VAR USER: PROCESSREF;
+     ADDR: @IORESULT;
+ VAR ENTRY
+     CONNECTED: BOOLEAN;
+ "HARDWARE"
+     STATUSREG:
+       PACKED RECORD
+         ERROR,
+         READY,
+         INTERRUPT: BOOLEAN;
+       END;
+     BUFFER: CHAR;
+ PROCEDURE INITIO(BUF: @LINE;
+                  VAR COM:
+                          @IOPARAM);
+ VAR CURSOR: @LINE;
+     I: INTEGER;
+ BEGIN
+   IF STATUSREG.ERROR THEN "OFFLINE"
+     COM@.STATUS := INTERVENTION
+                                ELSE
+     IF COM@.OPERATION <> OUTPUT
+                                THEN
+       COM@.STATUS := COMPLETE ELSE
+       BEGIN
+         ADDR := @COM@.STATUS;
+         CURSOR := BUF;
+         I := 1;
+         REPEAT
+           STATUSREG.INTERRUPT:=
+             TRUE;
+           BUFFER:= CURSOR@(.I.);
+           I:= I + 1;
+         UNTIL NOT STATUSREG.READY;
+         USER := RUNNING.PREEMPTED;
+       END;
+ END;
+ PROCEDURE INTERRUPT;
+ BEGIN
+   IF USER <> NIL THEN
+     BEGIN
+       READY.ENTER(USER);
+       VIRTUAL.GETMAP(USER);
+       IF STATUSREG.ERROR THEN
+         ADDR@ := INTERVENTION ELSE
+         ADDR@ := COMPLETE;
+       USER := NIL;
+       READY.ENDIO;
+     END;
+ END;
+ PROCEDURE INITIALIZE;
+ BEGIN
+   USER := NIL;
+   STATUSREG.INTERRUPT := FALSE;
+ END "OF INITIALIZE";
+ BEGIN
+   CONNECTED := DEVICEPRESENT(
+                         STATUSREG);
+   IF CONNECTED THEN
+     INITIALIZE;
+ END "OF LPXXPRINTER";
+"###################################
+               #  CD11ACARDREADER  #
+###################################"
+ VAR CD11ACARDREADER:
+ CLASS
+ CONST IOCOUNT = -80;
+       SUBCHAR = '(:26:)';
+ TYPE CHARCODE = -128..127;
+ TYPE CARD = ARRAY (.1..80.) OF
+                               CHAR;
+ VAR USER: PROCESSREF;
+     ADDR: @IORESULT;
+     IMAGE: @CARD;
+     I: INTEGER;
+     BUFFER: ARRAY (.1..80.) OF
+                           CHARCODE;
+     TRANSLATE: ARRAY (.CHARCODE.)
+                            OF CHAR;
+ VAR ENTRY
+     CONNECTED: BOOLEAN;
+ "HARDWARE"
+     STATUSREG:
+       PACKED RECORD
+         ERROR,
+         READERCHECK,
+         ENDOFFILE,
+         OFFLINE,
+         DATAERROR,
+         DATALATE,
+         NONEXISTENTMEMORY,
+         POWERCLEAR,
+         READY,
+         INTERRUPT: BOOLEAN;
+         ADDRBITS: 0..3;
+         TRANSITION,
+         HOPPERCHECK,
+         DATAPACKING,
+         GO: BOOLEAN;
+       END;
+     COUNTREG: INTEGER;
+     ADDRREG: ADDRESS;
+ PROCEDURE INITIO(VAR BUF: @CARD;
+                  VAR COM:
+                          @IOPARAM);
+ BEGIN
+   WITH STATUSREG DO
+   BEGIN
+     IF OFFLINE THEN
+       COM@.STATUS := INTERVENTION
+                                ELSE
+       IF COM@.OPERATION <> INPUT
+                                THEN
+         COM@.STATUS := COMPLETE
+                                ELSE
+         BEGIN
+           ADDR := @COM@.STATUS;
+           IMAGE := BUF;
+           ADDRREG := @BUFFER;
+           COUNTREG := IOCOUNT;
+           INTERRUPT := TRUE;
+           GO := TRUE;
+           USER :=
+                  RUNNING.PREEMPTED;
+         END;
+   END;
+ END;
+ PROCEDURE INTERRUPT;
+ VAR RESULT: IORESULT;
+     I: INTEGER;
+ BEGIN
+   IF USER <> NIL THEN
+     WITH STATUSREG DO
+     BEGIN
+       READY.ENTER(USER);
+       VIRTUAL.GETMAP(USER);
+       RESULT := COMPLETE;
+       IF ERROR THEN
+         IF OFFLINE AND
+            NOT HOPPERCHECK THEN
+           RESULT := INTERVENTION
+                                ELSE
+           IF DATALATE THEN
+             RESULT := FAILURE ELSE
+             IF DATAERROR THEN
+               RESULT :=
+                       TRANSMISSION;
+       ADDR@ := RESULT;
+       IF (RESULT = COMPLETE) OR
+          (RESULT = TRANSMISSION)
+                                THEN
+         FOR I := 1 TO 80 DO
+       IMAGE@(.I.) :=
+           TRANSLATE(.BUFFER(.I.).);
+       USER := NIL;
+       READY.ENDIO;
+     END;
+ END;
+ PROCEDURE INITIALIZE;
+ BEGIN
+   USER := NIL;
+   WITH STATUSREG DO
+   BEGIN
+     POWERCLEAR := TRUE;
+     INTERRUPT := FALSE;
+     ADDRBITS := 0;
+     DATAPACKING := TRUE;
+     GO := FALSE;
+   END;
+   TRANSLATE(.-128.) := '&';
+   TRANSLATE(.-127.) := 'A';
+   TRANSLATE(.-126.) := 'B';
+   TRANSLATE(.-125.) := 'C';
+   TRANSLATE(.-124.) := 'D';
+   TRANSLATE(.-123.) := 'E';
+   TRANSLATE(.-122.) := 'F';
+   TRANSLATE(.-121.) := 'G';
+   TRANSLATE(.-120.) := 'H';
+   TRANSLATE(.-119.) := SUBCHAR;
+   TRANSLATE(.-118.) := SUBCHAR;
+   TRANSLATE(.-117.) := '.';
+   TRANSLATE(.-116.) := '<';
+   TRANSLATE(.-115.) := '(';
+   TRANSLATE(.-114.) := '+';
+   TRANSLATE(.-113.) := '!';
+   TRANSLATE(.-112.) := 'I';
+   FOR I := -111 TO -1 DO
+   TRANSLATE(.I.) := SUBCHAR;
+   TRANSLATE(.0.) := ' ';
+   TRANSLATE(.1.) := '1';
+   TRANSLATE(.2.) := '2';
+   TRANSLATE(.3.) := '3';
+   TRANSLATE(.4.) := '4';
+   TRANSLATE(.5.) := '5';
+   TRANSLATE(.6.) := '6';
+   TRANSLATE(.7.) := '7';
+   TRANSLATE(.8.) := '8';
+   TRANSLATE(.9.) := SUBCHAR;
+   TRANSLATE(.10.) := ':';
+   TRANSLATE(.11.) := '#';
+   TRANSLATE(.12.) := '@';
+   TRANSLATE(.13.) := '''';
+   TRANSLATE(.14.) := '=';
+   TRANSLATE(.15.) := '"';
+   TRANSLATE(.16.) := '9';
+   FOR I := 17 TO 31 DO
+   TRANSLATE(.I.) := SUBCHAR;
+   TRANSLATE(.32.) := '0';
+   TRANSLATE(.33.) := '/';
+   TRANSLATE(.34.) := 'S';
+   TRANSLATE(.35.) := 'T';
+   TRANSLATE(.36.) := 'U';
+   TRANSLATE(.37.) := 'V';
+   TRANSLATE(.38.) := 'W';
+   TRANSLATE(.39.) := 'X';
+   TRANSLATE(.40.) := 'Y';
+   TRANSLATE(.41.) := SUBCHAR;
+   TRANSLATE(.42.) := SUBCHAR;
+   TRANSLATE(.43.) := ',';
+   TRANSLATE(.44.) := '%';
+   TRANSLATE(.45.) := '_';
+   TRANSLATE(.46.) := '>';
+   TRANSLATE(.47.) := '?';
+   TRANSLATE(.48.) := 'Z';
+   FOR I := 49 TO 63 DO
+   TRANSLATE(.I.) := SUBCHAR;
+   TRANSLATE(.64.) := '-';
+   TRANSLATE(.65.) := 'J';
+   TRANSLATE(.66.) := 'K';
+   TRANSLATE(.67.) := 'L';
+   TRANSLATE(.68.) := 'M';
+   TRANSLATE(.69.) := 'N';
+   TRANSLATE(.70.) := 'O';
+   TRANSLATE(.71.) := 'P';
+   TRANSLATE(.72.) := 'Q';
+   TRANSLATE(.73.) := SUBCHAR;
+   TRANSLATE(.74.) := SUBCHAR;
+   TRANSLATE(.75.) := '$';
+   TRANSLATE(.76.) := '*';
+   TRANSLATE(.77.) := ')';
+   TRANSLATE(.78.) := ';';
+   TRANSLATE(.79.) := '^';
+   TRANSLATE(.80.) := 'R';
+   FOR I := 81 TO 127 DO
+   TRANSLATE(.I.) := SUBCHAR;
+ END "OF INITIALIZE";
+ BEGIN
+   CONNECTED := DEVICEPRESENT(
+                         STATUSREG);
+   IF CONNECTED THEN
+     INITIALIZE;
+ END "OF CD11ACARDREADER";
+"###################################
+                  #  IO/INTERRUPT  #
+###################################"
+ PROCEDURE ENTRY IO(VAR BUFFER:
+                         BUFFERTYPE;
+                    VAR PARAM:
+                           @IOPARAM;
+                    DEVICE:
+                          IODEVICE);
+ CONST UNIT0 = 0;
+       UNIT1 = 2;
+ VAR NODEVICE: BOOLEAN;
+ BEGIN
+   RUNNING.STARTIO;
+   NODEVICE := FALSE;
+   CASE DEVICE OF
+     TTY0:
+     WITH LT33TERMINAL DO
+     IF CONNECTED THEN
+       INITIO(BUFFER, PARAM) ELSE
+       NODEVICE := TRUE;
+     DISK0:
+     WITH RK11DISK DO
+     IF CONNECTED THEN
+       INITIO(BUFFER, PARAM, UNIT0)
+       ELSE NODEVICE := TRUE;
+     TAPE90:
+     WITH TM11TAPE DO
+     IF CONNECTED THEN
+       INITIO(BUFFER, PARAM, UNIT0)
+       ELSE NODEVICE := TRUE;
+     PRINTER0:
+     WITH LPXXPRINTER DO
+     IF CONNECTED THEN
+       INITIO(BUFFER, PARAM) ELSE
+       NODEVICE := TRUE;
+     CARDREADER0:
+     WITH CD11ACARDREADER DO
+     IF CONNECTED THEN
+       INITIO(BUFFER, PARAM) ELSE
+       NODEVICE := TRUE;
+     TAPE91:
+     WITH TM11TAPE DO
+     IF CONNECTED THEN
+       INITIO(BUFFER, PARAM, UNIT1)
+       ELSE NODEVICE := TRUE;
+   END;
+   IF NODEVICE THEN
+     IOFAIL(PARAM);
+ END;
+ PROCEDURE ENTRY INTERRUPT(DEVICE:
+                          IODEVICE);
+ BEGIN
+   CASE DEVICE OF
+     TTY0:
+       WITH LT33TERMINAL DO
+       CASE STATE OF
+         PASSIVE, READING:
+                      READINTERRUPT;
+         WRITING: WRITEINTERRUPT;
+       END;
+     DISK0: RK11DISK.INTERRUPT;
+     TAPE90, TAPE91:
+                 TM11TAPE.INTERRUPT;
+     PRINTER0:
+              LPXXPRINTER.INTERRUPT;
+     CARDREADER0:
+          CD11ACARDREADER.INTERRUPT;
+   END;
+ END;
+"###################################
+                      #  MESSAGES  #
+###################################"
+ CONST NEWLINE =
+                '(:13:)(:10:)(:0:)';
+ TYPE LINE = UNIV STRING;
+ PROCEDURE WRITETEXT(TEXT: @LINE);
+ CONST NULCHAR = '(:0:)';
+ VAR I: INTEGER;
+ BEGIN
+   I := 1;
+   WHILE NOT (TEXT@(.I.) = NULCHAR)
+                                  DO
+   BEGIN
+     LT33TERMINAL.KERNELWRITE(
+                        TEXT@(.I.));
+     I :+ 1;
+   END;
+ END;
+ PROCEDURE WRITEINT(NN: INTEGER);
+ CONST BLANK = ' ';
+       NULCHAR = '(:0:)';
+ VAR N: INTEGER;
+     I: INTEGER;
+     INT: ARRAY (.1..7.) OF CHAR;
+ BEGIN
+   INT(.7.) := NULCHAR;
+   N := NN;
+   I := 7;
+   REPEAT
+     I :- 1;
+     INT(.I.) := CHR(N MOD 10 +
+                          ORD('0'));
+     N := N DIV 10;
+   UNTIL N = 0;
+   I :- 1;
+   INT(.I.) := BLANK;
+   WRITETEXT(@INT(.I.));
+ END;
+ PROCEDURE KERNELERROR(RESULT:
+                              LINE);
+ CONST SYSTEM = 'SYSTEM LINE(:0:)';
+       BLANK = ' (:0:)';
+ BEGIN
+   WRITETEXT(NEWLINE);
+   WRITETEXT(SYSTEM);
+   WRITEINT(RUNNING.HEAD.OPLINE);
+   WRITETEXT(BLANK);
+   WRITETEXT(RESULT);
+   WRITETEXT(NEWLINE);
+   CYCLE END;
+ END;
+ PROCEDURE KERNELREADY;
+ CONST READYMESSAGE =
+                'SYSTEM READY(:0:)';
+ BEGIN
+   WRITETEXT(NEWLINE);
+   WRITETEXT(READYMESSAGE);
+   WRITETEXT(NEWLINE);
+ END;
+"###################################
+                #  INITIALIZATION  #
+###################################"
+ "INITIALIZE THE KERNEL"
+ BEGIN
+   LOADVIRTUALMACHINE;
+   LOADSYSTEMPROGRAM;
+   NEWCORE.INITIALIZE;
+   TIMER.INITIALIZE;
+   CLOCK.INITIALIZE;
+   CORE.INITIALIZE;
+   VIRTUAL.INITIALIZE;
+   RUNNING.INITIALIZE;
+   READY.INITIALIZE;
+   TM11TAPE.INITIALIZE;
+   RK11DISK.INITIALIZE;
+   LT33TERMINAL.INITIALIZE;
+   LPXXPRINTER.INITIALIZE;
+   CD11ACARDREADER.INITIALIZE;
+   RUNNING.INITPARENT(
+                 INTERPRETERLENGTH);
+   KERNELREADY;
+ END "OF KERNEL";
