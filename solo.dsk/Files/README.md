@@ -7,3 +7,10 @@ Files extracted from disk image
 |SEQCODE  |Sequential code files|
 |CONCODE  |Concurrent code files|
 |SCRATCH  |Temporal files       |
+
+|File      |Contents                        |Software Tool[[1]](#1)|       
+|----------|--------------------------------|-------------|
+|KERNELTEXT|Merged PDP-11 kernel source file|KernelMerge34|
+
+<a id="1">[1]</a>
+SOLO Software Tools Repository: [GitHub](https://github.com/ngospina/SOLO-Tools)
