@@ -10,7 +10,7 @@ Files extracted from disk image
 
 |File      |Contents                        |Software Tool[[1]](#1)|       
 |----------|--------------------------------|-------------|
-|KERNELTEXT|Merged PDP-11 kernel source file|KernelMerge34|
+|KERNELTEXT|Merged PDP-11 kernel source file|KernelMerge45|
 
 <a id="1">[1]</a>
 SOLO Software Tools Repository: [GitHub](https://github.com/ngospina/SOLO-Tools)
