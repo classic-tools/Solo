@@ -13,4 +13,4 @@ Files extracted from disk image
 |KERNELTEXT|Merged PDP-11 kernel source file|KernelMerge34|
 
 <a id="1">[1]</a>
-SOLO Software Tools Repository: [GitHub](https://github.com/ngospina/SOLO-Tools)
+Solo Software Tools Repository: [GitHub](https://github.com/ngospina/Solo-Tools)
