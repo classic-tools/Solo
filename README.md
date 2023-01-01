@@ -10,7 +10,7 @@ A single-user operating system, originally developed by Per Brinch Hansen and hi
 |File           |Contents                                         |Software Tool[[1]](#1)                   |       
 |---------------|-------------------------------------------------|--------------------------------|
 |Kernel.txt     |Kernel high level encoding (from KERNELTEXT)     |KernelExtract34, KernelExtract45|
-|Interpreter.txt|Interpreter high level encoding (from KERNELTEXT)|KernelExtract34, KernelExtract45|
+|Interpreter.txt|Interpreter high level encoding (from Kernel.txt)|InterpreterExtract              |
 
 <a id="1">[1]</a>
 SOLO Software Tools Repository: [GitHub](https://github.com/ngospina/SOLO-Tools)
