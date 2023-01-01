@@ -2067,3 +2067,1047 @@
                  INTERPRETERLENGTH);
    KERNELREADY;
  END "OF KERNEL";
+ CONST INTERPRETERLENGTH = ...;
+"
+  TOM ZEPKO
+  JORGENSEN LAB  286-80
+  CALIFORNIA INSTITUTE OF TECHNOLOGY
+  OCTOBER 1974
+"
+STARTADDR: P:=ST(Q); Q:+2;
+  PROCEDURE CONSTADDR(DISPL);
+  BEGIN
+    TEST ST(JOB);
+    IF ZERO
+      THEN BEGIN S:-2; ST(S):=ST(CONSTADDR); END; "SYSTEM"
+      ELSE BEGIN S:-2; ST(S):=ST(G+10); END;     "JOB"
+    ST(S):+ST(Q); Q:+2;
+  END;
+  PROCEDURE LOCALADDR(DISPL);
+  BEGIN
+    S:-2; ST(S):=B;
+    ST(S):+ST(Q); Q:+2;
+  END;
+  PROCEDURE GLOBALADDR(DISPL);
+  BEGIN
+    S:-2; ST(S):=G;
+    ST(S):+ST(Q); Q:+2;
+  END;
+  PROCEDURE PUSHCONST(VALUE);
+  BEGIN
+  S:-2; ST(S):=ST(Q); Q:+2;
+  END;
+  PROCEDURE PUSHLOCAL(DISPL);
+  BEGIN
+    W:=B;
+    W:+ST(Q); Q:+2;
+    S:-2; ST(S):=ST(W);
+  END;
+  PROCEDURE PUSHGLOBAL(DISPL);
+  BEGIN
+    W:=G;
+    W:+ST(Q); Q:+2;
+    S:-2; ST(S):=ST(W);
+  END;
+  PROCEDURE PUSHIND;
+  BEGIN
+    ST(S):=ST(ST(S));
+  END;
+  PROCEDURE PUSHBYTE;
+  BEGIN
+    W:=<BYTE>ST(ST(S));
+    ST(S):=W;
+  END;
+  PROCEDURE PUSHREAL;
+  BEGIN
+    W:=ST(S); S:+2;
+    W:+8;
+    W:-2; S:-2; ST(S):=ST(W);
+    W:-2; S:-2; ST(S):=ST(W);
+    W:-2; S:-2; ST(S):=ST(W);
+    W:-2; S:-2; ST(S):=ST(W);
+  END;
+  PROCEDURE PUSHSET;
+  BEGIN
+    W:=ST(S); S:+2;
+    W:+16;
+    W:-2; S:-2; ST(S):=ST(W);
+    W:-2; S:-2; ST(S):=ST(W);
+    W:-2; S:-2; ST(S):=ST(W);
+    W:-2; S:-2; ST(S):=ST(W);
+    W:-2; S:-2; ST(S):=ST(W);
+    W:-2; S:-2; ST(S):=ST(W);
+    W:-2; S:-2; ST(S):=ST(W);
+    W:-2; S:-2; ST(S):=ST(W);
+  END;
+  PROCEDURE FIELD(DISPL);
+  BEGIN
+    ST(S):+ST(Q); Q:+2;
+  END;
+  PROCEDURE INDEX(MIN,MAX-MIN,LENGTH);
+  BEGIN
+    X:=ST(S); S:+2;
+    X:-ST(Q); Q:+2;
+    IF LESS THEN
+      GOTO RANGEERROR;
+    X COMPARE ST(Q); Q:+2;
+    IF GREATER THEN
+      GOTO RANGEERROR
+    X:*ST(Q); Q:+2;
+    ST(S):+X;
+  END;
+  PROCEDURE POINTER;
+  BEGIN
+    TEST ST(S);
+    IF ZERO THEN
+      GOTO POINTERERROR;
+  END;
+  PROCEDURE VARIANT(DISPL,TAGSET)
+  BEGIN
+    W:=1;
+    X:=ST(S);              "X=RECORD ADDR"
+    X:+ST(Q); Q:+2;        "X=TAG ADDR"
+    W:SHIFT ST(X);        "W=1 SHIFT TAGVALUE"
+    ST(Q) TESTBIT W; Q:+2;
+    IF BITZERO THEN
+      GOTO VARIANTERROR;
+  END;
+  PROCEDURE RANGE(MIN,MAX);
+  BEGIN
+    ST(S) COMPARE ST(Q); Q:+2;
+    IF LESS THEN
+      GOTO RANGEERROR;
+    ST(S) COMPARE ST(Q); Q:+2;
+    IF GREATER THEN
+      GOTO RANGEERROR;
+  END;
+  PROCEDURE COPYBYTE;
+  BEGIN
+    ST(ST(S+2)):=<BYTE>ST(S); S:+4;
+  END;
+  PROCEDURE COPYWORD;
+  BEGIN
+    ST(ST(S+2)):=ST(S); S:+4;
+  END;
+  PROCEDURE COPYREAL;
+  BEGIN
+    W:=ST(S+8);
+    ST(W):=ST(S); W:+2; S:+2;
+    ST(W):=ST(S); W:+2; S:+2;
+    ST(W):=ST(S); W:+2; S:+2;
+    ST(W):=ST(S); W:+2; S:+2;
+    TEST ST(S); S:+2;
+  END;
+  PROCEDURE COPYSET;
+  BEGIN
+    W:=ST(S+16);
+    ST(W):=ST(S); W:+2; S:+2;
+    ST(W):=ST(S); W:+2; S:+2;
+    ST(W):=ST(S); W:+2; S:+2;
+    ST(W):=ST(S); W:+2; S:+2;
+    ST(W):=ST(S); W:+2; S:+2;
+    ST(W):=ST(S); W:+2; S:+2;
+    ST(W):=ST(S); W:+2; S:+2;
+    ST(W):=ST(S); W:+2; S:+2;
+    TEST ST(S); S:+2;
+  END;
+  PROCEDURE COPYTAG(LENGTH DIV 2);
+  BEGIN                        "LENGTH>0"
+    ST(ST(S+2)):=ST(S); S:+2;
+    W:=ST(Q); Q:+2;            "W=LENGTH DIV 2"
+    X:=ST(S); S:+2;             "X=TAG ADDR"
+    TEST ST(X); X:+2;
+    ITERATE W TIMES
+    BEGIN
+      CLEAR ST(X); X:+2;
+    END;
+  END;
+  PROCEDURE COPYSTRUC(LENGTH DIV 2);
+  BEGIN
+    W:=ST(Q); Q:+2;            "W=LENGTH DIV 2"
+    X:=ST(S); S:+2;            "X=SOURCE ADDR"
+    Y:=ST(S); S:+2;            "Y=DEST ADDR"
+    ITERATE W TIMES
+    BEGIN
+      ST(Y):=ST(X); Y:+2; X:+2;
+    END;
+  END;
+  PROCEDURE NEW(STACKLENGTH+LENGTH,LENGTH);
+  BEGIN
+    X:=B;
+    X:-ST(HEAPTOP);
+    X COMPARE ST(Q); Q:+2;
+    IF LESS<UNSIGNED> THEN
+      GOTO HEAPLIMIT;
+    ST(ST(S)):=ST(HEAPTOP); S:+2;
+    ST(HEAPTOP):+ST(Q); Q:+2;
+  END;
+  PROCEDURE NEWINIT(STACKLENGTH+LENGTH,LENGTH);
+  BEGIN                        "LENGTH>0"
+    X:=B
+    X:-ST(HEAPTOP);
+    X COMPARE ST(Q); Q:+2;
+    IF LESS<UNSIGNED> THEN
+      GOTO HEAPLIMIT;
+    ST(ST(S)):=ST(HEAPTOP); S:+2;
+    W:=ST(Q); Q:+2;
+    ST(HEAPTOP):+W;
+    HALVE W
+    X:=ST(HEAPTOP);
+    ITERATE W TIMES
+    BEGIN
+      X:-2; CLEAR ST(X);
+    END;
+  END;
+  PROCEDURE NOT;
+  BEGIN
+    ST(S):=-ST(S);
+    INCREMENT ST(S);
+  END;
+  PROCEDURE ANDWORD;
+  BEGIN
+    W:=ST(S); S:+2;
+    W:=NOT W;
+    ST(S):ANDNOT W;
+  END;
+  PROCEDURE ANDSET;
+  BEGIN
+    W:=8;
+    ITERATE W TIMES
+      BEGIN
+        ST(S):=NOT ST(S);
+        ST(S+16):ANDNOT ST(S); S:+2;
+      END;
+  END;
+  PROCEDURE ORWORD;
+  BEGIN
+    ST(S+2):OR ST(S); S:+2;
+  END;
+  PROCEDURE ORSET;
+  BEGIN
+    W:=8;
+    ITERATE W TIMES
+    BEGIN
+      ST(S+16):OR ST(S); S:+2;
+    END;
+  END;
+  PROCEDURE NEGWORD;
+  BEGIN
+    ST(S):=-ST(S)
+  END;
+  PROCEDURE NEGREAL;
+  BEGIN
+    ST(S):=<REAL>-ST(S);
+  END;
+  PROCEDURE ADDWORD;
+  BEGIN
+    ST(S+2):+ST(S); S:+2;
+  END;
+  PROCEDURE ADDREAL;
+  BEGIN
+    W:=<REAL>ST(S); S:+8;
+    W:+<REAL>ST(S);
+    ST(S):=<REAL>W;
+  END;
+  PROCEDURE SUBWORD;
+  BEGIN
+    ST(S+2):-ST(S);  S:+2;
+  END;
+  PROCEDURE SUBREAL;
+  BEGIN
+    W:=<REAL>ST(S); S:+8;
+    X:=<REAL>ST(S);
+    X:-<REAL>W;
+    ST(S):=<REAL>X;
+  END;
+  PROCEDURE SUBSET;
+  BEGIN
+    W:=8;
+    ITERATE W TIMES
+    BEGIN
+      ST(S+16):ANDNOT ST(S); S:+2;
+    END;
+  END;
+  PROCEDURE MULWORD;
+  BEGIN
+    X:=ST(S); S:+2;
+    X:*ST(S);
+    ST(S):=X;
+  END;
+  PROCEDURE MULREAL;
+  BEGIN
+    W:=<REAL>ST(S); S:+8;
+    W:*<REAL>ST(S);
+    ST(S):=<REAL>W;
+  END;
+  PROCEDURE DIVWORD;
+  BEGIN
+    X:=ST(S+2);
+    WX:/ST(S); S:+2;
+    ST(S):=W;
+  END;
+  PROCEDURE DIVREAL;
+  BEGIN
+    W:=<REAL>ST(S+8);
+    W:/<REAL>ST(S); S:+8;
+    ST(S):=<REAL>W;
+  END;
+  PROCEDURE MODWORD;
+  BEGIN
+    X:=ST(S+2);
+    WX:/ST(S); S:+2;
+    ST(S):=X;
+  END;
+  PROCEDURE BUILDSET;
+  BEGIN
+    W:=ST(S); S:+2;
+    IF W<0 THEN GOTO RANGEERROR;
+    W COMPARE 127;
+    IF GREATER THEN
+      GOTO RANGEERROR;
+    X:=W;                      "X=MEMBER"
+    W:MOD 8;                   "W=MEMBER MOD 8"
+    X:DIV 8;
+    X:+S;                      "X=SET BYTE ADR"
+    Y:=1;
+    Y:SHIFT W;                 "Y=SET BYTE BIT"
+    ST(X):OR<BYTE> Y;
+  END;
+  PROCEDURE INSET;
+  BEGIN
+    W:=ST(S+16);
+    IF W<0 THEN GOTO RANGEERROR;
+    W COMPARE 127;
+    IF GREATER THEN
+      GOTO RANGEERROR;
+    X:=W;                      "X=MEMBER"
+    W:MOD 8;                   "W=MEMBER MOD 8"
+    X:DIV 8;
+    X:+S;                      "X=SET BYTE ADR"
+    Y:=<BYTE> ST(X);           "Y=SET BYTE"
+    W:=-W;
+    Y:SHIFT W;
+    Y:MOD 2;                   "Y=SET BIT"
+    S:+16;
+    ST(S):=Y;
+  END;
+  PROCEDURE LSWORD;
+  BEGIN
+    CLEAR W;
+    ST(S) COMPARE ST(S+2);  S:+2;
+    IF GREATER THEN
+      INCREMENT W;
+    ST(S):=W;
+  END;
+  PROCEDURE EQWORD;
+  BEGIN
+    CLEAR W;
+    ST(S) COMPARE ST(S+2); S:+2;
+    IF EQUAL THEN
+      INCREMENT W;
+    ST(S):=W;
+  END;
+  PROCEDURE GRWORD;
+  BEGIN
+    CLEAR W;
+    ST(S) COMPARE ST(S+2); S:+2;
+    IF LESS THEN
+      INCREMENT W;
+    ST(S):=W;
+  END;
+  PROCEDURE NLWORD;
+  BEGIN
+    CLEAR W;
+    ST(S) COMPARE ST(S+2); S:+2;
+    IF NOTGREATER THEN
+      INCREMENT W;
+    ST(S):=W;
+  END;
+  PROCEDURE NEWORD;
+  BEGIN
+    CLEAR W;
+    ST(S) COMPARE ST(S+2); S:+2;
+    IF NOTEQUAL THEN
+      INCREMENT W;
+    ST(S):=W;
+  END;
+  PROCEDURE NGWORD;
+  BEGIN
+    CLEAR W;
+    ST(S) COMPARE ST(S+2); S:+2;
+    IF NOTLESS THEN
+      INCREMENT W;
+    ST(S):=W;
+  END;
+  PROCEDURE LSREAL;
+  BEGIN
+    CLEAR W;
+    X:=<REAL>ST(S); S:+8;
+    ST(S) COMPARE X; S:+8;
+    IF LESS THEN
+      INCREMENT W;
+    S:-2; ST(S):=W;
+  END;
+  PROCEDURE EQREAL;
+  BEGIN
+    CLEAR W;
+    X:=<REAL>ST(S); S:+8;
+    ST(S) COMPARE X; S:+8;
+    IF EQUAL THEN
+      INCREMENT W;
+    S:-2; ST(S):=W;
+  END;
+  PROCEDURE GRREAL
+  BEGIN
+    CLEAR W;
+    X:=<REAL>ST(S); S:+8;
+    ST(S) COMPARE X; S:+8;
+    IF GREATER THEN
+      INCREMENT W;
+    S:-2; ST(S):=W;
+  END;
+  PROCEDURE NLREAL
+  BEGIN
+    CLEAR W;
+    X:=<REAL>ST(S); S:+8;
+    ST(S) COMPARE X; S:+8;
+    IF NOTLESS THEN
+      INCREMENT W;
+    S:-2; ST(S):=W;
+  END;
+  PROCEDURE NEREAL;
+  BEGIN
+    CLEAR W;
+    X:=<REAL>ST(S); S:+8;
+    ST(S) COMPARE X; S:+8;
+    IF NOTEQUAL THEN
+      INCREMENT W;
+    S:-2; ST(S):=W;
+  END;
+  PROCEDURE NGREAL
+  BEGIN
+    CLEAR W;
+    X:=<REAL>ST(S); S:+8;
+    ST(S) COMPARE X; S:+8;
+    IF NOTGREATER THEN
+      INCREMENT W;
+    S:-2; ST(S):=W;
+  END;
+  PROCEDURE EQSET;
+  BEGIN
+    CLEAR W;
+    X:=S;
+    Y:=8;
+    REPEAT
+      ST(X+16) COMPARE ST(X); X:+2;
+      Y:-1;
+    UNTIL (Y=0) OR NOTEQUAL;
+    IF EQUAL THEN INCREMENT W;
+    S:+30;
+    ST(S):=W;
+  END;
+  PROCEDURE NLSET;
+  BEGIN
+    CLEAR W;
+    X:=S;
+    Y:=8;
+    REPEAT
+      ST(X):ANDNOT ST(X+16); X:+2;
+      Y:-1;
+    UNTIL (Y=0) OR NOTZERO;
+    IF ZERO THEN INCREMENT W;
+    S:+30;
+    ST(S):=W;
+  END;
+  PROCEDURE NESET;
+  BEGIN
+    W:=1;
+    X:=S;
+    Y:=8;
+    REPEAT
+      ST(X+16) COMPARE ST(X); X:+2;
+      Y:-1;
+    UNTIL (Y=0) OR NOTEQUAL;
+    IF EQUAL THEN CLEAR W;
+    S:+30;
+    ST(S):=W;
+  END;
+  PROCEDURE NGSET;
+  BEGIN
+    CLEAR W;
+    X:=S;
+    Y:=8;
+    REPEAT
+      ST(X+16):ANDNOT ST(X); X:+2;
+      Y:-1;
+    UNTIL (Y=0) OR NOTZERO;
+    IF ZERO THEN INCREMENT W;
+    S:+30;
+    ST(S):=W;
+  END;
+  PROCEDURE LSSTRUCT(LENGTH DIV 2);
+  BEGIN
+    W:=ST(Q); Q:+2;
+    DOUBLE W;                  "W=LENGTH"
+    X:=ST(S); S:+2;            "X=SOURCE ADDR"
+    Y:=ST(S);                  "Y=DEST ADDR"
+    CLEAR ST(S);
+    REPEAT
+      ST(Y) COMPARE<BYTE> ST(X); Y:+1; X:+1;
+      W:-1;
+    UNTIL (W=0) OR NOTEQUAL;
+    IF LESS THEN
+      INCREMENT ST(S);
+  END;
+  PROCEDURE EQSTRUCT(LENGTH DIV 2);
+  BEGIN
+    W:=ST(Q); Q:+2;            "W=LENGTH DIV 2"
+    X:=ST(S); S:+2;            "X=SOURCE ADDR"
+    Y:=ST(S);                  "Y=DEST ADDR"
+    CLEAR ST(S);
+    REPEAT
+      ST(Y) COMPARE ST(X); Y:+2; X:+2;
+      W:-1;
+    UNTIL (W=0) OR NOTEQUAL;
+    IF EQUAL THEN INCREMENT ST(S);
+  END;
+  PROCEDURE GRSTRUCT(LENGTH DIV 2);
+  BEGIN
+    W:=ST(Q); Q:+2;
+    DOUBLE W;                  "W=LENGTH"
+    X:=ST(S); S:+2;            "X=SOURCE ADDR"
+    Y:=ST(S);                  "Y=DEST ADDR"
+    CLEAR ST(S);
+    REPEAT
+      ST(Y) COMPARE<BYTE> ST(X); Y:+1; X:+1;
+      W:-1;
+    UNTIL (W=0) OR NOTEQUAL;
+    IF GREATER THEN
+      INCREMENT ST(S);
+  END;
+  PROCEDURE NLSTRUCT(LENGTH DIV 2);
+  BEGIN
+    W:=ST(Q); Q:+2;
+    DOUBLE W;                  "W=LENGTH"
+    X:=ST(S); S:+2;            "X=SOURCE ADDR"
+    Y:=ST(S);                  "Y=DEST ADDR"
+    CLEAR ST(S);
+    REPEAT
+      ST(Y) COMPARE<BYTE> ST(X); Y:+1; X:+1;
+      W:-1;
+    UNTIL (W=0) OR NOTEQUAL;
+    IF NOTLESS THEN
+      INCREMENT ST(S);
+  END;
+  PROCEDURE NESTRUCT(LENGTH DIV 2);
+  BEGIN
+    W:=ST(Q); Q:+2;            "W=LENGTH DIV 2"
+    X:=ST(S); S:+2;             "X=SOURCE ADDR"
+    Y:=ST(S);                  "Y=DEST ADDR"
+    ST(S):=1;
+    REPEAT
+      ST(Y) COMPARE ST(X); Y:+2; X:+2;
+      W:-1;
+    UNTIL (W=0) OR NOTEQUAL;
+    IF EQUAL THEN CLEAR ST(S);
+  END;
+  PROCEDURE NGSTRUCT(LENGTH DIV 2);
+  BEGIN
+    W:=ST(Q); Q:+2;
+    DOUBLE W;                  "W=LENGTH"
+    X:=ST(S); S:+2;            "X=SOURCE ADDR"
+    Y:=ST(S);                  "Y=DEST ADDR"
+    CLEAR ST(S);
+    REPEAT
+      ST(Y) COMPARE<BYTE> ST(X); Y:+1; X:+1;
+      W:-1;
+    UNTIL (W=0) OR NOTEQUAL;
+    IF NOT GREATER THEN
+      INCREMENT ST(S);
+  END;
+  PROCEDURE FUNCVALUE(KIND);
+  BEGIN
+    CASE KIND OF
+      SIMPLEWORD:              "0"
+        BEGIN
+          S:-2; CLEAR ST(S);
+        END;
+      SIMPLEREAL:              "8"
+        BEGIN
+          S:-8;
+        END;
+      CLASSWORD:               "16"
+        BEGIN
+          W:=ST(S);
+          CLEAR ST(S);
+          S:-2; ST(S):=W;
+        END;
+      CLASSREAL:               "24"
+        BEGIN
+          W:=ST(S);
+          S:-8;
+          ST(S):=W;
+        END;
+      END;
+  END;
+  PROCEDURE JUMP(DISTANCE);
+  BEGIN
+    Q:+ST(Q);
+  END;
+  PROCEDURE FALSEJUMP(DISTANCE);
+  BEGIN
+    IF (ST(CONTINUE) = 0)
+     AND
+      (ST(JOB) <> 0)
+    THEN GOTO EXCEPTION
+    ELSE
+    BEGIN
+    TEST ST(S); S:+2;          "CONTINUE=10"
+    IF ZERO
+      THEN Q:+ST(Q)
+      ELSE Q:+2;
+    END
+  END;
+  PROCEDURE CASEJUMP(MIN,MAX-MIN,DISTANCES);
+  BEGIN
+    W:=ST(S); S:+2;
+    W:-ST(Q); Q:+2;
+    IF LESS THEN GOTO RANGEERROR;
+    W COMPARE ST(Q); Q:+2;
+    IF GREATER THEN
+      GOTO RANGEERROR;
+    DOUBLE W;
+    Q:+W;
+    Q:+ST(Q);
+  END;
+  PROCEDURE INITVAR(LENGTH DIV 2);
+  BEGIN
+    W:=ST(Q); Q:+2;
+    X:=S;
+    ITERATE W TIMES
+    BEGIN
+      CLEAR ST(X); X:+2;
+    END;
+  END;
+  PROCEDURE CALL(DISTANCE);
+  BEGIN
+    W:=Q;
+    W:+ST(Q); Q:+2;
+    S:-2; ST(S):=Q;
+    Q:=W;
+  END;
+  PROCEDURE CALLSYS((ENTRY-2)*2);
+  BEGIN
+    W:=ST(G+2);     "OLD S BEFORE PROGRAM CALL"
+    W:+ST(Q); Q:+2; "W = ENTRY POINT ADDR"
+    S:-2; ST(S):=Q;
+    Q:=ST(W);
+  END;
+"ACTIVATION RECORD:
+            <HEAP>
+  HEAPTOP:  <FREE SPACE>
+  S:        <TEMPORARIES>
+            <VARIABLES>
+  B (OR G): <LINE>
+    + 2     <OLD S>
+    + 4     <OLD B>
+    + 6     <OLD G>
+    + 8     <OLD Q>
+    + 10    <PARAMETERS>
+           (<FUNCTION RESULT>)
+ MONITOR VARIABLE:
+            <VARIABLES>
+  G:        <GATE ADDRESS>
+            <PARAMETERS>
+ STACKLENGTH = VARLENGTH + TEMPLENGTH + 10
+ POPLENGTH = PARAMLENGTH + 8"
+  PROCEDURE ENTER(STACKLENGTH,POPLENGTH,LINE,
+                                    VARLENGTH);
+  BEGIN
+    X:=S;
+    X:-ST(HEAPTOP);
+    X COMPARE ST(Q); Q:+2;     "ERROR MESSAGE"
+    IF LESS<UNSIGNED> THEN     "WILL REFER TO"
+      GOTO STACKLIMIT;         "LINE OF CALL"
+    S:-2; ST(S):=G;
+    S:-2; ST(S):=B;
+    S:-2;
+          ST(S):=S;
+    ST(S):+ST(Q); Q:+2;
+    S:-2; ST(S):=ST(Q); Q:+2;
+    B:=S;
+    S:-ST(Q); Q:+2;
+  END;
+  PROCEDURE EXIT;
+  BEGIN
+    S:=B;
+    TEST ST(S); S:+2;
+    W:=ST(S); S:+2;
+    B:=ST(S); S:+2;
+    G:=ST(S); S:+2;
+    Q:=ST(S); S:+2;
+    S:=W;
+  END;
+  PROCEDURE ENTERPROG(POPLENGTH,LINE,STACKLENGTH,
+                                    VARLENGTH);
+  BEGIN
+    INCREMENT ST(JOB);
+    S:-2; ST(S):=G;
+    S:-2; ST(S):=B;
+    S:-2;
+          ST(S):=S;
+    ST(S):+ST(Q); Q:+2;
+    S:-2; ST(S):=ST(Q); Q:+2;
+    B:=S;
+    G:=B;
+    X:=S;
+    X:-ST(HEAPTOP);
+    X COMPARE ST(Q); Q:+2;     "ERROR MESSAGE"
+    IF LESS<UNSIGNED> THEN     "WILL REFER TO"
+      GOTO STACKLIMIT;         "LINE 1 OF USER"
+    S:-ST(Q); Q:+2;            "PROGRAM"
+  END;
+  PROCEDURE EXITPROG;
+  BEGIN
+    TEST ST(CONTINUE);
+    IF ZERO
+      THEN GOTO EXCEPTION
+      ELSE GOTO TERMINATED;
+  END;
+  PROCEDURE BEGINCLASS(STACKLENGTH,10,LINE,0);
+  BEGIN
+    X:=S;
+    X:-ST(HEAPTOP);
+    X COMPARE ST(Q); Q:+2;     "ERROR MESSAGE"
+    IF LESS<UNSIGNED> THEN     "WILL REFER TO"
+      GOTO STACKLIMIT;         "LINE OF CALL"
+    S:-2; ST(S):=G;
+    S:-2; ST(S):=B;
+    S:-2;
+          ST(S):=S;
+    ST(S):+ST(Q); Q:+2;
+    S:-2; ST(S):=ST(Q); Q:+2;
+    B:=S;
+    S:-ST(Q); Q:+2;
+    W:=ST(B+2);
+    G:=ST(W-2);
+  END;
+  PROCEDURE ENDCLASS;
+  BEGIN
+    "SAME AS EXIT"
+  END;
+  PROCEDURE ENTERCLASS(STACKLENGTH,POPLENGTH,
+                              LINE,VARLENGTH);
+  BEGIN
+    "SAME AS BEGINCLASS"
+  END;
+  PROCEDURE EXITCLASS;
+  BEGIN
+    "SAME AS EXIT"
+  END;
+  PROCEDURE BEGINMON(STACKLENGTH,10,LINE,0);
+  BEGIN
+    X:=S;
+    X:-ST(HEAPTOP);
+    X COMPARE ST(Q); Q:+2;     "ERROR MESSAGE"
+    IF LESS<UNSIGNED> THEN     "WILL REFER TO"
+      GOTO STACKLIMIT;         "LINE OF CALL"
+    S:-2; ST(S):=G;
+    S:-2; ST(S):=B;
+    S:-2;
+          ST(S):=S;
+    ST(S):+ST(Q); Q:+2;
+    S:-2; ST(S):=ST(Q); Q:+2;
+    B:=S;
+    S:-ST(Q); Q:+2;
+    W:=ST(B+2);
+    G:=ST(W-2);
+    ST(KERNELOP):=INITGATE1;
+    ST(KERNELARG1):=G;
+    KERNELCALL;
+  END;
+  PROCEDURE ENDMON;
+  BEGIN
+    ST(KERNELOP):=LEAVEGATE1;
+    ST(KERNELARG1):=ST(G);
+    KERNELCALL;
+    S:=B;
+    TEST ST(S); S:+2;
+    W:=ST(S); S:+2;
+    B:=ST(S); S:+2;
+    G:=ST(S); S:+2;
+    Q:=ST(S); S:+2;
+    S:=W;
+  END;
+  PROCEDURE ENTERMON(STACKLENGTH, POPLENGTH,
+                              LINE, VARLENGTH);
+  BEGIN
+    X:=S;
+    X:-ST(HEAPTOP);
+    X COMPARE ST(Q); Q:+2;     "ERROR MESSAGE"
+    IF LESS<UNSIGNED> THEN     "WILL REFER TO"
+      GOTO STACKLIMIT;         "LINE OF CALL"
+    S:-2; ST(S):=G;
+    S:-2; ST(S):=B;
+    S:-2;
+          ST(S):=S;
+    ST(S):+ST(Q); Q:+2;
+    S:-2; ST(S):=ST(Q); Q:+2;
+    B:=S;
+    S:-ST(Q); Q:+2;
+    W:=ST(B+2);
+    G:=ST(W-2);
+    ST(KERNELOP):=ENTERGATE1;
+    ST(KERNELARG1):=ST(G);
+    KERNELCALL;
+  END;
+  PROCEDURE EXITMON;
+  BEGIN
+    "SAME AS ENDMON"
+  END;
+  PROCEDURE BEGINPROC(LINE);
+  BEGIN
+    ST(B):=ST(Q); Q:+2;
+  END;
+  PROCEDURE ENDPROC;
+  BEGIN
+    ST(KERNELOP):=ENDPROCESS1;
+    KERNELCALL;
+  END;
+  PROCEDURE ENTERPROC(STACKLENGTH,POPLENGTH,
+                               LINE,VARLENGTH);
+  BEGIN
+    X:=S;
+    X:-ST(HEAPTOP);
+    X COMPARE ST(Q); Q:+2;     "ERROR MESSAGE"
+    IF LESS<UNSIGNED> THEN     "WILL REFER TO"
+      GOTO STACKLIMIT;         "LINE OF CALL"
+    S:-2; ST(S):=G;
+    S:-2; ST(S):=B;
+    S:-2;
+          ST(S):=S;
+    ST(S):+ST(Q); Q:+2;
+    S:-2; ST(S):=ST(Q); Q:+2;
+    B:=S;
+    S:-ST(Q); Q:+2;
+    G:=ST(G+6);
+    CLEAR ST(JOB);
+  END;
+  PROCEDURE EXITPROC;
+  BEGIN
+    S:=B;
+    TEST ST(S); S:+2;
+    W:=ST(S); S:+2;
+    B:=ST(S); S:+2;
+    G:=ST(S); S:+2;
+    Q:=ST(S); S:+2;
+    S:=W;
+    INCREMENT ST(JOB);
+  END;
+  PROCEDURE POP(LENGTH);
+  BEGIN
+    S:+ST(Q); Q:+2;
+  END;
+  PROCEDURE NEWLINE(NUMBER);
+  BEGIN
+    ST(B):=ST(Q); Q:+2;
+  END;
+  PROCEDURE INCRWORD;
+  BEGIN
+    INCREMENT ST(ST(S)); S:+2;
+  END;
+  PROCEDURE DECRWORD;
+  BEGIN
+    DECREMENT ST(ST(S)); S:+2;
+  END;
+  PROCEDURE INITCLASS(PARAMLENGTH,DISTANCE);
+  BEGIN
+    W:=ST(Q); Q:+2;            "W=PARAMLENGTH"
+    IF NONZERO THEN
+      BEGIN
+        X:=S;
+        X:+W;                 "X=S+PARAMLENGTH"
+        X:=ST(X);
+        TEST ST(X); X:+2;     "X=CLASS ADDR+2"
+        HALVE W
+        ITERATE W TIMES
+        BEGIN
+          ST(X):=ST(S); X:+2; S:+2;
+        END;
+      END;
+    W:=Q;
+    W:+ST(Q); Q:+2;
+    S:-2; ST(S):=Q;
+    Q:=W;
+  END;
+  PROCEDURE INITMON(PARAMLENGTH,DISTANCE);
+  BEGIN
+    "SAME AS INITCLASS"
+  END;
+  PROCEDURE INITPROC(PARAMLENGTH,VARLENGTH,
+                         STACKLENGTH,DISTANCE);
+  BEGIN
+    ST(KERNELOP):=INITPROCESS1;
+    ST(KERNELARG1):=ST(Q); Q:+2;
+    ST(KERNELARG2):=ST(Q); Q:+2;
+    ST(KERNELARG3):=ST(Q); Q:+2;
+    ST(KERNELARG4):=Q;
+    ST(KERNELARG4):+ST(Q); Q:+2;
+    KERNELCALL;
+    TEST ST(S); S:+2;
+  END;
+  PROCEDURE PUSHLABEL(DISTANCE);
+  BEGIN
+    S:-2; ST(S):=Q;
+    ST(S):+ST(Q); Q:+2;
+  END;
+  PROCEDURE CALLPROG;
+  BEGIN
+    W:=Q;                      "W=OLD Q"
+    Q:=ST(S);                  "Q=CODE ADDR"
+    TEST ST(Q); Q:+2;
+    ST(S):=ST(Q); Q:+2;        "ST(S)=CODELENG"
+    Q:+4;                      "Q=CODEADDR+8"
+    ST(S):+Q;                  "ST(S)=CONSTADR"
+    S:-2; ST(S):=W;            "PUSH(OLD Q)"
+  END;
+  PROCEDURE TRUNCREAL;
+  BEGIN
+    W:=<REAL>ST(S); S:+8;
+    S:-2; ST(S):=TRUNC(W);
+  END;
+  PROCEDURE ABSWORD;
+  BEGIN
+    TEST ST(S);
+    IF NEGATIVE THEN
+      BEGIN
+        ST(S):=-ST(S);
+      END;
+  END;
+  PROCEDURE ABSREAL;
+  BEGIN
+    ST(S):=ABS<REAL>(ST(S));
+  END;
+  PROCEDURE SUCCWORD;
+  BEGIN
+    INCREMENT ST(S);
+  END;
+  PROCEDURE PREDWORD;
+  BEGIN
+    DECREMENT ST(S);
+  END;
+  PROCEDURE CONVWORD;
+  BEGIN
+    W:=CONV(ST(S)); S:+2;
+    S:-8; ST(S):=<REAL>W;
+  END;
+  PROCEDURE EMPTY;
+  BEGIN
+    CLEAR W;
+    TEST ST(S);
+    IF ZERO THEN
+      INCREMENT W;
+    ST(S):=W;
+  END;
+  PROCEDURE ATTRIBUTE;
+  BEGIN
+    W:=ST(S);
+    DOUBLE W;
+    ST(S):=ST(W+HEAD);
+  END;
+  PROCEDURE REALTIME;
+  BEGIN
+    ST(KERNELOP):=REALTIME1;
+    KERNELCALL;
+    S:-2; ST(S):=ST(KERNELARG1);
+  END;
+  PROCEDURE DELAY;
+  BEGIN
+    ST(KERNELOP):=DELAYGATE1;
+    ST(KERNELARG1):=ST(G);
+    ST(KERNELARG2):=ST(S); S:+2;
+    KERNELCALL;
+  END;
+  PROCEDURE CONTINUE;
+  BEGIN
+    ST(KERNELOP):=CONTGATE1;
+    ST(KERNELARG1):=ST(G);
+    ST(KERNELARG2):=ST(S); S:+2;
+    KERNELCALL;
+    S:=B;
+    TEST ST(S); S:+2;
+    W:=ST(S); S:+2;
+    B:=ST(S); S:+2;
+    G:=ST(S); S:+2;
+    Q:=ST(S); S:+2;
+    S:=W;
+  END;
+  PROCEDURE IO;
+  BEGIN
+    ST(KERNELOP):=IO1;
+    ST(KERNELARG3):=ST(S); S:+2;
+    ST(KERNELARG2):=ST(S); S:+2;
+    ST(KERNELARG1):=ST(S); S:+2;
+    KERNELCALL;
+  END;
+  PROCEDURE START;
+  BEGIN
+    ST(CONTINUE):=10;
+  END;
+  PROCEDURE STOP;
+  BEGIN
+    ST(KERNELOP):=STOPJOB1;
+    ST(KERNELARG2):=ST(S); S:+2;
+    ST(KERNELARG1):=ST(S); S:+2;
+    KERNELCALL;
+  END;
+  PROCEDURE SETHEAP;
+  BEGIN
+    ST(HEAPTOP):=ST(S); S:+2;
+  END;
+  PROCEDURE WAIT;
+  BEGIN
+    ST(KERNELOP):=WAIT1;
+    KERNELCALL;
+  END;
+TERMINATED:
+  ST(RESULT):=0;
+  GOTO EXCEPTION;
+OVERFLOWERROR:
+  ST(RESULT):=1;
+  GOTO EXCEPTION;
+POINTERERROR:
+  ST(RESULT):=2;
+  GOTO EXCEPTION;
+RANGEERROR:
+  ST(RESULT):=3;
+  GOTO EXCEPTION;
+VARIANTERROR:
+  ST(RESULT):=4;
+  GOTO EXCEPTION;
+HEAPLIMIT:
+  ST(RESULT):=5;
+  GOTO EXCEPTION;
+STACKLIMIT:
+  ST(RESULT):=6;
+  GOTO EXCEPTION;
+EXCEPTION:
+  ST(LINE):=ST(B);
+  TEST ST(JOB);
+  IF ZERO THEN "INSYSTEM"
+    BEGIN
+    ST(KERNELOP):=SYSTEMERROR;
+      KERNELCALL;
+    END
+  ELSE "IN JOB"
+    BEGIN
+      B:=G;
+      S:=B;
+      TEST ST(S); S:+2;
+      W:=ST(S); S:+2;
+      B:=ST(S); S:+2;
+      G:=ST(S); S:+2;
+      Q:=ST(S); S:+2;
+      S:=W;
+      CLEAR ST(JOB);
+  END;

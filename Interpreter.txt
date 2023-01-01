@@ -1,46 +1,67 @@
- CONST INTERPRETERLENGTH = ...;
-  "ENSURE BLOCK ALIGNMENT"
+ VAR W:
+        INTEGER;
+     X:
+        INTEGER;
+     Y:
+        INTEGER;
+     Q:
+        INTEGER;
+     B:
+        INTEGER;
+     G:
+        INTEGER;
+     S:
+        INTEGER;
+     P:
+        INTEGER;
+     Z:
+        INTEGER;
+     ZERO: BOOLEAN;
+     NEGATIVE: BOOLEAN;
+     GREATER: BOOLEAN;
+     LESS: BOOLEAN;
+     EQUAL: BOOLEAN;
+     BITZERO: BOOLEAN;
 "
   TOM ZEPKO
   JORGENSEN LAB  286-80
   CALIFORNIA INSTITUTE OF TECHNOLOGY
   OCTOBER 1974
 "
-STARTADDR: P:=ST(Q); Q:+2;
-REALOVERFLOW:  GOTO OVERFLOWERROR;
+STARTADDR: P:=ST(Q); Q:=Q+2;
   PROCEDURE CONSTADDR(DISPL);
   BEGIN
-    TEST ST(JOB);
+    ZERO:=ST(JOB)=0;
     IF ZERO
-      THEN BEGIN S:-2; ST(S):=ST(CONSTADDR); END; "SYSTEM"
-      ELSE BEGIN S:-2; ST(S):=ST(G+10); END;     "JOB"
-    ST(S):+ST(Q); Q:+2;
+      THEN BEGIN S:=S-2; ST(S):=ST(CONSTADDR); END; "SYSTEM"
+      ELSE BEGIN S:=S-2; ST(S):=ST(G+10); END;     "JOB"
+    ST(S):=ST(S)+ST(Q); Q:=Q+2;
   END;
   PROCEDURE LOCALADDR(DISPL);
   BEGIN
-    S:-2; ST(S):=B;
-    ST(S):+ST(Q); Q:+2;
+    S:=S-2; ST(S):=B;
+    ST(S):=ST(S)+ST(Q); Q:=Q+2;
   END;
   PROCEDURE GLOBALADDR(DISPL);
   BEGIN
-    S:-2; ST(S):=G;
-    ST(S):+ST(Q); Q:+2;
+    S:=S-2; ST(S):=G;
+    ST(S):=ST(S)+ST(Q); Q:=Q+2;
   END;
   PROCEDURE PUSHCONST(VALUE);
   BEGIN
-  S:-2; ST(S):=ST(Q); Q:+2;
+  S:=S-2; ST(S):=ST(Q); Q:=Q+2;
   END;
   PROCEDURE PUSHLOCAL(DISPL);
   BEGIN
     W:=B;
-    W:+ST(Q); Q:+2;
-    S:-2; ST(S):=ST(W);
+    W:=W+ST(Q); Q:=Q+2;
+    S:=S-2; ST(S):=ST(W);
   END;
   PROCEDURE PUSHGLOBAL(DISPL);
   BEGIN
     W:=G;
-    W:+ST(Q); Q:+2;
-    S:-2; ST(S):=ST(W);
+    W:=W+ST(Q); Q:=Q+2;
+    S:=S-2; ST(S):=ST(W);
   END;
   PROCEDURE PUSHIND;
   BEGIN
@@ -48,50 +69,50 @@ REALOVERFLOW:  GOTO OVERFLOWERROR;
   END;
   PROCEDURE PUSHBYTE;
   BEGIN
-    W:=<BYTE>ST(ST(S));
+    W:="BYTE"ST(ST(S));
     ST(S):=W;
   END;
   PROCEDURE PUSHREAL;
   BEGIN
-    W:=ST(S); S:+2;
-    W:+8;
-    W:-2; S:-2; ST(S):=ST(W);
-    W:-2; S:-2; ST(S):=ST(W);
-    W:-2; S:-2; ST(S):=ST(W);
-    W:-2; S:-2; ST(S):=ST(W);
+    W:=ST(S); S:=S+2;
+    W:=W+8;
+    W:=W-2; S:=S-2; ST(S):=ST(W);
+    W:=W-2; S:=S-2; ST(S):=ST(W);
+    W:=W-2; S:=S-2; ST(S):=ST(W);
+    W:=W-2; S:=S-2; ST(S):=ST(W);
   END;
   PROCEDURE PUSHSET;
   BEGIN
-    W:=ST(S); S:+2;
-    W:+16;
-    W:-2; S:-2; ST(S):=ST(W);
-    W:-2; S:-2; ST(S):=ST(W);
-    W:-2; S:-2; ST(S):=ST(W);
-    W:-2; S:-2; ST(S):=ST(W);
-    W:-2; S:-2; ST(S):=ST(W);
-    W:-2; S:-2; ST(S):=ST(W);
-    W:-2; S:-2; ST(S):=ST(W);
-    W:-2; S:-2; ST(S):=ST(W);
+    W:=ST(S); S:=S+2;
+    W:=W+16;
+    W:=W-2; S:=S-2; ST(S):=ST(W);
+    W:=W-2; S:=S-2; ST(S):=ST(W);
+    W:=W-2; S:=S-2; ST(S):=ST(W);
+    W:=W-2; S:=S-2; ST(S):=ST(W);
+    W:=W-2; S:=S-2; ST(S):=ST(W);
+    W:=W-2; S:=S-2; ST(S):=ST(W);
+    W:=W-2; S:=S-2; ST(S):=ST(W);
+    W:=W-2; S:=S-2; ST(S):=ST(W);
   END;
   PROCEDURE FIELD(DISPL);
   BEGIN
-    ST(S):+ST(Q); Q:+2;
+    ST(S):=ST(S)+ST(Q); Q:=Q+2;
   END;
   PROCEDURE INDEX(MIN,MAX-MIN,LENGTH);
   BEGIN
-    X:=ST(S); S:+2;
-    X:-ST(Q); Q:+2;
+    X:=ST(S); S:=S+2;
+    LESS:=X<ST(Q); X:=X-ST(Q); Q:=Q+2;
     IF LESS THEN
       GOTO RANGEERROR;
-    X COMPARE ST(Q); Q:+2;
+    GREATER:=X>ST(Q); Q:=Q+2;
     IF GREATER THEN
       GOTO RANGEERROR
-    X:*ST(Q); Q:+2;
-    ST(S):+X;
+    X:=X*ST(Q); Q:=Q+2;
+    ST(S):=ST(S)+X;
   END;
   PROCEDURE POINTER;
   BEGIN
-    TEST ST(S);
+    ZERO:=ST(S)=0;
     IF ZERO THEN
       GOTO POINTERERROR;
   END;
@@ -99,378 +120,357 @@ REALOVERFLOW:  GOTO OVERFLOWERROR;
   BEGIN
     W:=1;
     X:=ST(S);              "X=RECORD ADDR"
-    X:+ST(Q); Q:+2;        "X=TAG ADDR"
-    W:SHIFT ST(X);        "W=1 SHIFT TAGVALUE"
-    ST(Q) TESTBIT W; Q:+2;
+    X:=X+ST(Q); Q:=Q+2;        "X=TAG ADDR"
+    W:=W SHIFT ST(X);        "W=1 SHIFT TAGVALUE"
+    BITZERO:=ST(Q) TESTBIT W; Q:=Q+2;
     IF BITZERO THEN
       GOTO VARIANTERROR;
   END;
   PROCEDURE RANGE(MIN,MAX);
   BEGIN
-    ST(S) COMPARE ST(Q); Q:+2;
+    LESS:=ST(S)<ST(Q); Q:=Q+2;
     IF LESS THEN
       GOTO RANGEERROR;
-    ST(S) COMPARE ST(Q); Q:+2;
+    GREATER:=ST(S)>ST(Q); Q:=Q+2;
     IF GREATER THEN
       GOTO RANGEERROR;
   END;
   PROCEDURE COPYBYTE;
   BEGIN
-    ST(ST(S+2)):=<BYTE>ST(S); S:+4;
+    ST(ST(S+2)):="BYTE"ST(S); S:=S+4;
   END;
   PROCEDURE COPYWORD;
   BEGIN
-    ST(ST(S+2)):=ST(S); S:+4;
+    ST(ST(S+2)):=ST(S); S:=S+4;
   END;
   PROCEDURE COPYREAL;
   BEGIN
     W:=ST(S+8);
-    ST(W):=ST(S); W:+2; S:+2;
-    ST(W):=ST(S); W:+2; S:+2;
-    ST(W):=ST(S); W:+2; S:+2;
-    ST(W):=ST(S); W:+2; S:+2;
-    TEST ST(S); S:+2;
+    ST(W):=ST(S); W:=W+2; S:=S+2;
+    ST(W):=ST(S); W:=W+2; S:=S+2;
+    ST(W):=ST(S); W:=W+2; S:=S+2;
+    ST(W):=ST(S); W:=W+2; S:=S+2;
+                S:=S+2;
   END;
   PROCEDURE COPYSET;
   BEGIN
     W:=ST(S+16);
-    ST(W):=ST(S); W:+2; S:+2;
-    ST(W):=ST(S); W:+2; S:+2;
-    ST(W):=ST(S); W:+2; S:+2;
-    ST(W):=ST(S); W:+2; S:+2;
-    ST(W):=ST(S); W:+2; S:+2;
-    ST(W):=ST(S); W:+2; S:+2;
-    ST(W):=ST(S); W:+2; S:+2;
-    ST(W):=ST(S); W:+2; S:+2;
-    TEST ST(S); S:+2;
+    ST(W):=ST(S); W:=W+2; S:=S+2;
+    ST(W):=ST(S); W:=W+2; S:=S+2;
+    ST(W):=ST(S); W:=W+2; S:=S+2;
+    ST(W):=ST(S); W:=W+2; S:=S+2;
+    ST(W):=ST(S); W:=W+2; S:=S+2;
+    ST(W):=ST(S); W:=W+2; S:=S+2;
+    ST(W):=ST(S); W:=W+2; S:=S+2;
+    ST(W):=ST(S); W:=W+2; S:=S+2;
+                S:=S+2;
   END;
   PROCEDURE COPYTAG(LENGTH DIV 2);
   BEGIN                        "LENGTH>0"
-    ST(ST(S+2)):=ST(S); S:+2;
-    W:=ST(Q); Q:+2;            "W=LENGTH DIV 2"
-    X:=ST(S); S:+2;             "X=TAG ADDR"
-    TEST ST(X); X:+2;
-    ITERATE W TIMES
+    ST(ST(S+2)):=ST(S); S:=S+2;
+    W:=ST(Q); Q:=Q+2;            "W=LENGTH DIV 2"
+    X:=ST(S); S:=S+2;             "X=TAG ADDR"
+                X:=X+2;
+    FOR Z:=1 TO W DO
     BEGIN
-      CLEAR ST(X); X:+2;
+      ST(X):=0; X:=X+2;
     END;
   END;
   PROCEDURE COPYSTRUC(LENGTH DIV 2);
   BEGIN
-    W:=ST(Q); Q:+2;            "W=LENGTH DIV 2"
-    X:=ST(S); S:+2;            "X=SOURCE ADDR"
-    Y:=ST(S); S:+2;            "Y=DEST ADDR"
-    ITERATE W TIMES
+    W:=ST(Q); Q:=Q+2;            "W=LENGTH DIV 2"
+    X:=ST(S); S:=S+2;            "X=SOURCE ADDR"
+    Y:=ST(S); S:=S+2;            "Y=DEST ADDR"
+    FOR Z:=1 TO W DO
     BEGIN
-      ST(Y):=ST(X); Y:+2; X:+2;
+      ST(Y):=ST(X); Y:=Y+2; X:=X+2;
     END;
   END;
   PROCEDURE NEW(STACKLENGTH+LENGTH,LENGTH);
   BEGIN
     X:=B;
-    X:-ST(HEAPTOP);
-    X COMPARE ST(Q); Q:+2;
-    IF LESS<UNSIGNED> THEN
+    X:=X-ST(HEAPTOP);
+    LESS:=X<ST(Q); Q:=Q+2;
+    IF LESS"UNSIGNED" THEN
       GOTO HEAPLIMIT;
-    ST(ST(S)):=ST(HEAPTOP); S:+2;
-    ST(HEAPTOP):+ST(Q); Q:+2;
+    ST(ST(S)):=ST(HEAPTOP); S:=S+2;
+    ST(HEAPTOP):=ST(HEAPTOP)+ST(Q); Q:=Q+2;
   END;
   PROCEDURE NEWINIT(STACKLENGTH+LENGTH,LENGTH);
   BEGIN                        "LENGTH>0"
     X:=B
-    X:-ST(HEAPTOP);
-    X COMPARE ST(Q); Q:+2;
-    IF LESS<UNSIGNED> THEN
+    X:=X-ST(HEAPTOP);
+    LESS:=X<ST(Q); Q:=Q+2;
+    IF LESS"UNSIGNED" THEN
       GOTO HEAPLIMIT;
-    ST(ST(S)):=ST(HEAPTOP); S:+2;
-    W:=ST(Q); Q:+2;
-    ST(HEAPTOP):+W;
-    HALVE W
+    ST(ST(S)):=ST(HEAPTOP); S:=S+2;
+    W:=ST(Q); Q:=Q+2;
+    ST(HEAPTOP):=ST(HEAPTOP)+W;
+    W:=W DIV 2;
     X:=ST(HEAPTOP);
-    ITERATE W TIMES
+    FOR Z:=1 TO W DO
     BEGIN
-      X:-2; CLEAR ST(X);
+      X:=X-2; ST(X):=0;
     END;
   END;
   PROCEDURE NOT;
   BEGIN
     ST(S):=-ST(S);
-    INCREMENT ST(S);
+    ST(S):=ST(S)+1;
   END;
   PROCEDURE ANDWORD;
   BEGIN
-    W:=ST(S); S:+2;
+    W:=ST(S); S:=S+2;
     W:=NOT W;
-    ST(S):ANDNOT W;
+    ST(S):=ST(S) AND NOT W;
   END;
   PROCEDURE ANDSET;
   BEGIN
     W:=8;
-    ITERATE W TIMES
+    FOR Z:=1 TO W DO
       BEGIN
         ST(S):=NOT ST(S);
-        ST(S+16):ANDNOT ST(S); S:+2;
+        ST(S+16):=ST(S+16) AND NOT ST(S); S:=S+2;
       END;
   END;
   PROCEDURE ORWORD;
   BEGIN
-    ST(S+2):OR ST(S); S:+2;
+    ST(S+2):=ST(S+2) OR ST(S); S:=S+2;
   END;
   PROCEDURE ORSET;
   BEGIN
     W:=8;
-    ITERATE W TIMES
+    FOR Z:=1 TO W DO
     BEGIN
-      ST(S+16):OR ST(S); S:+2;
+      ST(S+16):=ST(S+16) OR ST(S); S:=S+2;
     END;
   END;
   PROCEDURE NEGWORD;
   BEGIN
     ST(S):=-ST(S)
-    IF OVERFLOW THEN
-      GOTO OVERFLOWERROR;
   END;
   PROCEDURE NEGREAL;
   BEGIN
-    ST(S):=<REAL>-ST(S);
+    ST(S):="REAL"-ST(S);
   END;
   PROCEDURE ADDWORD;
   BEGIN
-    ST(S+2):+ST(S); S:+2;
-    IF OVERFLOW THEN
-      GOTO OVERFLOWERROR;
+    ST(S+2):=ST(S+2)+ST(S); S:=S+2;
   END;
   PROCEDURE ADDREAL;
   BEGIN
-    W:=<REAL>ST(S); S:+8;
-    W:+<REAL>ST(S);
-    ST(S):=<REAL>W;
+    W:="REAL"ST(S); S:=S+8;
+    W:=W+"REAL"ST(S);
+    ST(S):="REAL"W;
   END;
   PROCEDURE SUBWORD;
   BEGIN
-    ST(S+2):-ST(S);  S:+2;
-    IF OVERFLOW THEN
-      GOTO OVERFLOWERROR;
+    ST(S+2):=ST(S+2)-ST(S);  S:=S+2;
   END;
   PROCEDURE SUBREAL;
   BEGIN
-    W:=<REAL>ST(S); S:+8;
-    X:=<REAL>ST(S);
-    X:-<REAL>W;
-    ST(S):=<REAL>X;
+    W:="REAL"ST(S); S:=S+8;
+    X:="REAL"ST(S);
+    X:=X-"REAL"W;
+    ST(S):="REAL"X;
   END;
   PROCEDURE SUBSET;
   BEGIN
     W:=8;
-    ITERATE W TIMES
+    FOR Z:=1 TO W DO
     BEGIN
-      ST(S+16):ANDNOT ST(S); S:+2;
+      ST(S+16):=ST(S+16) AND NOT ST(S); S:=S+2;
     END;
   END;
   PROCEDURE MULWORD;
   BEGIN
-    X:=ST(S); S:+2;
-    CARRY:=FALSE;
-    X:*ST(S);
-    IF CARRY THEN
-      GOTO OVERFLOWERROR;
+    X:=ST(S); S:=S+2;
+    X:=X*ST(S);
     ST(S):=X;
   END;
   PROCEDURE MULREAL;
   BEGIN
-    W:=<REAL>ST(S); S:+8;
-    W:*<REAL>ST(S);
-    ST(S):=<REAL>W;
+    W:="REAL"ST(S); S:=S+8;
+    W:=W*"REAL"ST(S);
+    ST(S):="REAL"W;
   END;
   PROCEDURE DIVWORD;
   BEGIN
-    X:=ST(S+2);
-    EXTENDSIGN W;
-    WX:/ST(S); S:+2;
-    IF OVERFLOW THEN
-      GOTO OVERFLOWERROR;
+    W:=ST(S+2);
+    W:=W DIV ST(S); S:=S+2;
     ST(S):=W;
   END;
   PROCEDURE DIVREAL;
   BEGIN
-    W:=<REAL>ST(S+8);
-    W:/<REAL>ST(S); S:+8;
-    ST(S):=<REAL>W;
+    W:="REAL"ST(S+8);
+    W:=W/"REAL"ST(S); S:=S+8;
+    ST(S):="REAL"W;
   END;
   PROCEDURE MODWORD;
   BEGIN
-    X:=ST(S+2);
-    EXTENDSIGN W;
-    WX:/ST(S); S:+2;
-    IF OVERFLOW THEN
-      GOTO OVERFLOWERROR;
+    W:=ST(S+2);
+    W:=W MOD ST(S); S:=S+2;
     ST(S):=X;
   END;
   PROCEDURE BUILDSET;
   BEGIN
-    W:=ST(S); S:+2;
+    W:=ST(S); S:=S+2;
     IF W<0 THEN GOTO RANGEERROR;
-    W COMPARE 127;
+    GREATER:=W>127;
     IF GREATER THEN
       GOTO RANGEERROR;
     X:=W;                      "X=MEMBER"
-    W:MOD 8;                   "W=MEMBER MOD 8"
-    X:DIV 8;
-    X:+S;                      "X=SET BYTE ADR"
+    W:=W MOD 8;                   "W=MEMBER MOD 8"
+    X:=X DIV 8;
+    X:=X+S;                      "X=SET BYTE ADR"
     Y:=1;
-    Y:SHIFT W;                 "Y=SET BYTE BIT"
-    ST(X):OR<BYTE> Y;
+    Y:=Y SHIFT W;                 "Y=SET BYTE BIT"
+    ST(X):=ST(X) OR"BYTE" Y;
   END;
   PROCEDURE INSET;
   BEGIN
     W:=ST(S+16);
     IF W<0 THEN GOTO RANGEERROR;
-    W COMPARE 127;
+    GREATER:=W>127;
     IF GREATER THEN
       GOTO RANGEERROR;
     X:=W;                      "X=MEMBER"
-    W:MOD 8;                   "W=MEMBER MOD 8"
-    X:DIV 8;
-    X:+S;                      "X=SET BYTE ADR"
-    Y:=<BYTE> ST(X);           "Y=SET BYTE"
+    W:=W MOD 8;                   "W=MEMBER MOD 8"
+    X:=X DIV 8;
+    X:=X+S;                      "X=SET BYTE ADR"
+    Y:="BYTE" ST(X);           "Y=SET BYTE"
     W:=-W;
-    Y:SHIFT W;
-    Y:MOD 2;                   "Y=SET BIT"
-    S:+16;
+    Y:=Y SHIFT W;
+    Y:=Y MOD 2;                   "Y=SET BIT"
+    S:=S+16;
     ST(S):=Y;
   END;
   PROCEDURE LSWORD;
   BEGIN
-    CLEAR W;
-    ST(S) COMPARE ST(S+2);  S:+2;
+    W:=0;
+    GREATER:=ST(S)>ST(S+2);  S:=S+2;
     IF GREATER THEN
-      INCREMENT W;
+      W:=W+1;
     ST(S):=W;
   END;
   PROCEDURE EQWORD;
   BEGIN
-    CLEAR W;
-    ST(S) COMPARE ST(S+2); S:+2;
+    W:=0;
+    EQUAL:=ST(S)=ST(S+2); S:=S+2;
     IF EQUAL THEN
-      INCREMENT W;
+      W:=W+1;
     ST(S):=W;
   END;
   PROCEDURE GRWORD;
   BEGIN
-    CLEAR W;
-    ST(S) COMPARE ST(S+2); S:+2;
+    W:=0;
+    LESS:=ST(S)<ST(S+2); S:=S+2;
     IF LESS THEN
-      INCREMENT W;
+      W:=W+1;
     ST(S):=W;
   END;
   PROCEDURE NLWORD;
   BEGIN
-    CLEAR W;
-    ST(S) COMPARE ST(S+2); S:+2;
-    IF NOTGREATER THEN
-      INCREMENT W;
+    W:=0;
+    GREATER:=ST(S)>ST(S+2); S:=S+2;
+    IF NOT GREATER THEN
+      W:=W+1;
     ST(S):=W;
   END;
   PROCEDURE NEWORD;
   BEGIN
-    CLEAR W;
-    ST(S) COMPARE ST(S+2); S:+2;
-    IF NOTEQUAL THEN
-      INCREMENT W;
+    W:=0;
+    EQUAL:=ST(S)=ST(S+2); S:=S+2;
+    IF NOT EQUAL THEN
+      W:=W+1;
     ST(S):=W;
   END;
   PROCEDURE NGWORD;
   BEGIN
-    CLEAR W;
-    ST(S) COMPARE ST(S+2); S:+2;
-    IF NOTLESS THEN
-      INCREMENT W;
+    W:=0;
+    LESS:=ST(S)<ST(S+2); S:=S+2;
+    IF NOT LESS THEN
+      W:=W+1;
     ST(S):=W;
   END;
   PROCEDURE LSREAL;
   BEGIN
-    CLEAR W;
-    X:=<REAL>ST(S); S:+8;
-    ST(S) COMPARE X; S:+8;
-    COPYCONDITIONS;
+    W:=0;
+    X:="REAL"ST(S); S:=S+8;
+    LESS:=ST(S)<X; S:=S+8;
     IF LESS THEN
-      INCREMENT W;
-    S:-2; ST(S):=W;
+      W:=W+1;
+    S:=S-2; ST(S):=W;
   END;
   PROCEDURE EQREAL;
   BEGIN
-    CLEAR W;
-    X:=<REAL>ST(S); S:+8;
-    ST(S) COMPARE X; S:+8;
-    COPYCONDITIONS;
+    W:=0;
+    X:="REAL"ST(S); S:=S+8;
+    EQUAL:=ST(S)=X; S:=S+8;
     IF EQUAL THEN
-      INCREMENT W;
-    S:-2; ST(S):=W;
+      W:=W+1;
+    S:=S-2; ST(S):=W;
   END;
   PROCEDURE GRREAL
   BEGIN
-    CLEAR W;
-    X:=<REAL>ST(S); S:+8;
-    ST(S) COMPARE X; S:+8;
-    COPYCONDITIONS;
+    W:=0;
+    X:="REAL"ST(S); S:=S+8;
+    GREATER:=ST(S)>X; S:=S+8;
     IF GREATER THEN
-      INCREMENT W;
-    S:-2; ST(S):=W;
+      W:=W+1;
+    S:=S-2; ST(S):=W;
   END;
   PROCEDURE NLREAL
   BEGIN
-    CLEAR W;
-    X:=<REAL>ST(S); S:+8;
-    ST(S) COMPARE X; S:+8;
-    COPYCONDITIONS;
-    IF NOTLESS THEN
-      INCREMENT W;
-    S:-2; ST(S):=W;
+    W:=0;
+    X:="REAL"ST(S); S:=S+8;
+    LESS:=ST(S)<X; S:=S+8;
+    IF NOT LESS THEN
+      W:=W+1;
+    S:=S-2; ST(S):=W;
   END;
   PROCEDURE NEREAL;
   BEGIN
-    CLEAR W;
-    X:=<REAL>ST(S); S:+8;
-    ST(S) COMPARE X; S:+8;
-    COPYCONDITIONS;
-    IF NOTEQUAL THEN
-      INCREMENT W;
-    S:-2; ST(S):=W;
+    W:=0;
+    X:="REAL"ST(S); S:=S+8;
+    EQUAL:=ST(S)=X; S:=S+8;
+    IF NOT EQUAL THEN
+      W:=W+1;
+    S:=S-2; ST(S):=W;
   END;
   PROCEDURE NGREAL
   BEGIN
-    CLEAR W;
-    X:=<REAL>ST(S); S:+8;
-    ST(S) COMPARE X; S:+8;
-    COPYCONDITIONS;
-    IF NOTGREATER THEN
-      INCREMENT W;
-    S:-2; ST(S):=W;
+    W:=0;
+    X:="REAL"ST(S); S:=S+8;
+    GREATER:=ST(S)>X; S:=S+8;
+    IF NOT GREATER THEN
+      W:=W+1;
+    S:=S-2; ST(S):=W;
   END;
   PROCEDURE EQSET;
   BEGIN
-    CLEAR W;
+    W:=0;
     X:=S;
     Y:=8;
     REPEAT
-      ST(X+16) COMPARE ST(X); X:+2;
-      Y:-1;
-    UNTIL (Y=0) OR NOTEQUAL;
-    IF EQUAL THEN INCREMENT W;
-    S:+30;
+      EQUAL:=ST(X+16)=ST(X); X:=X+2;
+      Y:=Y-1;
+    UNTIL (Y=0) OR NOT EQUAL;
+    IF EQUAL THEN W:=W+1;
+    S:=S+30;
     ST(S):=W;
   END;
   PROCEDURE NLSET;
   BEGIN
-    CLEAR W;
+    W:=0;
     X:=S;
     Y:=8;
     REPEAT
-      ST(X):ANDNOT ST(X+16); X:+2;
-      Y:-1;
-    UNTIL (Y=0) OR NOTZERO;
-    IF ZERO THEN INCREMENT W;
-    S:+30;
+      ST(X):=ST(X) AND NOT ST(X+16); X:=X+2;
+      Y:=Y-1;
+    UNTIL (Y=0) OR NOT ZERO;
+    IF ZERO THEN W:=W+1;
+    S:=S+30;
     ST(S):=W;
   END;
   PROCEDURE NESET;
@@ -479,136 +479,134 @@ REALOVERFLOW:  GOTO OVERFLOWERROR;
     X:=S;
     Y:=8;
     REPEAT
-      ST(X+16) COMPARE ST(X); X:+2;
-      Y:-1;
-    UNTIL (Y=0) OR NOTEQUAL;
-    IF EQUAL THEN CLEAR W;
-    S:+30;
+      EQUAL:=ST(X+16)=ST(X); X:=X+2;
+      Y:=Y-1;
+    UNTIL (Y=0) OR NOT EQUAL;
+    IF EQUAL THEN W:=0;
+    S:=S+30;
     ST(S):=W;
   END;
   PROCEDURE NGSET;
   BEGIN
-    CLEAR W;
+    W:=0;
     X:=S;
     Y:=8;
     REPEAT
-      ST(X+16):ANDNOT ST(X); X:+2;
-      Y:-1;
-    UNTIL (Y=0) OR NOTZERO;
-    IF ZERO THEN INCREMENT W;
-    S:+30;
+      ST(X+16):=ST(X+16) AND NOT ST(X); X:=X+2;
+      Y:=Y-1;
+    UNTIL (Y=0) OR NOT ZERO;
+    IF ZERO THEN W:=W+1;
+    S:=S+30;
     ST(S):=W;
   END;
   PROCEDURE LSSTRUCT(LENGTH DIV 2);
   BEGIN
-    W:=ST(Q); Q:+2;
-    DOUBLE W;                  "W=LENGTH"
-    X:=ST(S); S:+2;            "X=SOURCE ADDR"
+    W:=ST(Q); Q:=Q+2;
+    W:=W*2;                  "W=LENGTH"
+    X:=ST(S); S:=S+2;            "X=SOURCE ADDR"
     Y:=ST(S);                  "Y=DEST ADDR"
-    CLEAR ST(S);
+    ST(S):=0;
     REPEAT
-      ST(Y) COMPARE<BYTE> ST(X); Y:+1; X:+1;
-      W:-1;
-    UNTIL (W=0) OR NOTEQUAL;
+      LESS:=ST(Y)<"BYTE" ST(X); EQUAL:=ST(Y)="BYTE" ST(X); Y:=Y+1; X:=X+1;
+      W:=W-1;
+    UNTIL (W=0) OR NOT EQUAL;
     IF LESS THEN
-      INCREMENT ST(S);
+      ST(S):=ST(S)+1;
   END;
   PROCEDURE EQSTRUCT(LENGTH DIV 2);
   BEGIN
-    W:=ST(Q); Q:+2;            "W=LENGTH DIV 2"
-    X:=ST(S); S:+2;            "X=SOURCE ADDR"
+    W:=ST(Q); Q:=Q+2;            "W=LENGTH DIV 2"
+    X:=ST(S); S:=S+2;            "X=SOURCE ADDR"
     Y:=ST(S);                  "Y=DEST ADDR"
-    CLEAR ST(S);
+    ST(S):=0;
     REPEAT
-      ST(Y) COMPARE ST(X); Y:+2; X:+2;
-      W:-1;
-    UNTIL (W=0) OR NOTEQUAL;
-    IF EQUAL THEN INCREMENT ST(S);
+      EQUAL:=ST(Y)=ST(X); Y:=Y+2; X:=X+2;
+      W:=W-1;
+    UNTIL (W=0) OR NOT EQUAL;
+    IF EQUAL THEN ST(S):=ST(S)+1;
   END;
   PROCEDURE GRSTRUCT(LENGTH DIV 2);
   BEGIN
-    W:=ST(Q); Q:+2;
-    DOUBLE W;                  "W=LENGTH"
-    X:=ST(S); S:+2;            "X=SOURCE ADDR"
+    W:=ST(Q); Q:=Q+2;
+    W:=W*2;                  "W=LENGTH"
+    X:=ST(S); S:=S+2;            "X=SOURCE ADDR"
     Y:=ST(S);                  "Y=DEST ADDR"
-    CLEAR ST(S);
+    ST(S):=0;
     REPEAT
-      ST(Y) COMPARE<BYTE> ST(X); Y:+1; X:+1;
-      W:-1;
-    UNTIL (W=0) OR NOTEQUAL;
+      GREATER:=ST(Y)>"BYTE" ST(X);EQUAL:=ST(Y)="BYTE" ST(X); Y:=Y+1; X:=X+1;
+      W:=W-1;
+    UNTIL (W=0) OR NOT EQUAL;
     IF GREATER THEN
-      INCREMENT ST(S);
+      ST(S):=ST(S)+1;
   END;
   PROCEDURE NLSTRUCT(LENGTH DIV 2);
   BEGIN
-    W:=ST(Q); Q:+2;
-    DOUBLE W;                  "W=LENGTH"
-    X:=ST(S); S:+2;            "X=SOURCE ADDR"
+    W:=ST(Q); Q:=Q+2;
+    W:=W*2;                  "W=LENGTH"
+    X:=ST(S); S:=S+2;            "X=SOURCE ADDR"
     Y:=ST(S);                  "Y=DEST ADDR"
-    CLEAR ST(S);
+    ST(S):=0;
     REPEAT
-      ST(Y) COMPARE<BYTE> ST(X); Y:+1; X:+1;
-      W:-1;
-    UNTIL (W=0) OR NOTEQUAL;
-    IF NOTLESS THEN
-      INCREMENT ST(S);
+      LESS:=ST(Y)<"BYTE" ST(X); EQUAL:=ST(Y)="BYTE" ST(X); Y:=Y+1; X:=X+1;
+      W:=W-1;
+    UNTIL (W=0) OR NOT EQUAL;
+    IF NOT LESS THEN
+      ST(S):=ST(S)+1;
   END;
   PROCEDURE NESTRUCT(LENGTH DIV 2);
   BEGIN
-    W:=ST(Q); Q:+2;            "W=LENGTH DIV 2"
-    X:=ST(S); S:+2;             "X=SOURCE ADDR"
+    W:=ST(Q); Q:=Q+2;            "W=LENGTH DIV 2"
+    X:=ST(S); S:=S+2;             "X=SOURCE ADDR"
     Y:=ST(S);                  "Y=DEST ADDR"
     ST(S):=1;
     REPEAT
-      ST(Y) COMPARE ST(X); Y:+2; X:+2;
-      W:-1;
-    UNTIL (W=0) OR NOTEQUAL;
-    IF EQUAL THEN CLEAR ST(S);
+      EQUAL:=ST(Y)=ST(X); Y:=Y+2; X:=X+2;
+      W:=W-1;
+    UNTIL (W=0) OR NOT EQUAL;
+    IF EQUAL THEN ST(S):=0;
   END;
   PROCEDURE NGSTRUCT(LENGTH DIV 2);
   BEGIN
-    W:=ST(Q); Q:+2;
-    DOUBLE W;                  "W=LENGTH"
-    X:=ST(S); S:+2;            "X=SOURCE ADDR"
+    W:=ST(Q); Q:=Q+2;
+    W:=W*2;                  "W=LENGTH"
+    X:=ST(S); S:=S+2;            "X=SOURCE ADDR"
     Y:=ST(S);                  "Y=DEST ADDR"
-    CLEAR ST(S);
+    ST(S):=0;
     REPEAT
-      ST(Y) COMPARE<BYTE> ST(X); Y:+1; X:+1;
-      W:-1;
-    UNTIL (W=0) OR NOTEQUAL;
+      GREATER:=ST(Y)>"BYTE" ST(X);EQUAL:=ST(Y)="BYTE" ST(X); Y:=Y+1; X:=X+1;
+      W:=W-1;
+    UNTIL (W=0) OR NOT EQUAL;
     IF NOT GREATER THEN
-      INCREMENT ST(S);
+      ST(S):=ST(S)+1;
   END;
   PROCEDURE FUNCVALUE(KIND);
   BEGIN
     CASE KIND OF
       SIMPLEWORD:              "0"
         BEGIN
-          S:-2; CLEAR ST(S);
+          S:=S-2; ST(S):=0;
         END;
-        "FILLER"
       SIMPLEREAL:              "8"
         BEGIN
-          S:-8;
+          S:=S-8;
         END;
-        "FILLER"
       CLASSWORD:               "16"
         BEGIN
           W:=ST(S);
-          CLEAR ST(S);
-          S:-2; ST(S):=W;
+          ST(S):=0;
+          S:=S-2; ST(S):=W;
         END;
       CLASSREAL:               "24"
         BEGIN
           W:=ST(S);
-          S:-8;
+          S:=S-8;
           ST(S):=W;
         END;
       END;
   END;
   PROCEDURE JUMP(DISTANCE);
   BEGIN
-    Q:+ST(Q);
+    Q:=Q+ST(Q);
   END;
   PROCEDURE FALSEJUMP(DISTANCE);
   BEGIN
@@ -618,45 +616,45 @@ REALOVERFLOW:  GOTO OVERFLOWERROR;
     THEN GOTO EXCEPTION
     ELSE
     BEGIN
-    TEST ST(S); S:+2;          "CONTINUE=10"
+    ZERO:=ST(S)=0; S:=S+2;          "CONTINUE=10"
     IF ZERO
-      THEN Q:+ST(Q)
-      ELSE Q:+2;
+      THEN Q:=Q+ST(Q)
+      ELSE Q:=Q+2;
     END
   END;
   PROCEDURE CASEJUMP(MIN,MAX-MIN,DISTANCES);
   BEGIN
-    W:=ST(S); S:+2;
-    W:-ST(Q); Q:+2;
+    W:=ST(S); S:=S+2;
+    W:=W-ST(Q); Q:=Q+2;
     IF LESS THEN GOTO RANGEERROR;
-    W COMPARE ST(Q); Q:+2;
+    GREATER:=W>ST(Q); Q:=Q+2;
     IF GREATER THEN
       GOTO RANGEERROR;
-    DOUBLE W;
-    Q:+W;
-    Q:+ST(Q);
+    W:=W*2;
+    Q:=Q+W;
+    Q:=Q+ST(Q);
   END;
   PROCEDURE INITVAR(LENGTH DIV 2);
   BEGIN
-    W:=ST(Q); Q:+2;
+    W:=ST(Q); Q:=Q+2;
     X:=S;
-    ITERATE W TIMES
+    FOR Z:=1 TO W DO
     BEGIN
-      CLEAR ST(X); X:+2;
+      ST(X):=0; X:=X+2;
     END;
   END;
   PROCEDURE CALL(DISTANCE);
   BEGIN
     W:=Q;
-    W:+ST(Q); Q:+2;
-    S:-2; ST(S):=Q;
+    W:=W+ST(Q); Q:=Q+2;
+    S:=S-2; ST(S):=Q;
     Q:=W;
   END;
   PROCEDURE CALLSYS((ENTRY-2)*2);
   BEGIN
     W:=ST(G+2);     "OLD S BEFORE PROGRAM CALL"
-    W:+ST(Q); Q:+2; "W = ENTRY POINT ADDR"
-    S:-2; ST(S):=Q;
+    W:=W+ST(Q); Q:=Q+2; "W = ENTRY POINT ADDR"
+    S:=S-2; ST(S):=Q;
     Q:=ST(W);
   END;
 "ACTIVATION RECORD:
@@ -681,51 +679,51 @@ REALOVERFLOW:  GOTO OVERFLOWERROR;
                                     VARLENGTH);
   BEGIN
     X:=S;
-    X:-ST(HEAPTOP);
-    X COMPARE ST(Q); Q:+2;     "ERROR MESSAGE"
-    IF LESS<UNSIGNED> THEN     "WILL REFER TO"
+    X:=X-ST(HEAPTOP);
+    LESS:=X<ST(Q); Q:=Q+2;     "ERROR MESSAGE"
+    IF LESS"UNSIGNED" THEN     "WILL REFER TO"
       GOTO STACKLIMIT;         "LINE OF CALL"
-    S:-2; ST(S):=G;
-    S:-2; ST(S):=B;
-    S:-2;
+    S:=S-2; ST(S):=G;
+    S:=S-2; ST(S):=B;
+    S:=S-2;
           ST(S):=S;
-    ST(S):+ST(Q); Q:+2;
-    S:-2; ST(S):=ST(Q); Q:+2;
+    ST(S):=ST(S)+ST(Q); Q:=Q+2;
+    S:=S-2; ST(S):=ST(Q); Q:=Q+2;
     B:=S;
-    S:-ST(Q); Q:+2;
+    S:=S-ST(Q); Q:=Q+2;
   END;
   PROCEDURE EXIT;
   BEGIN
     S:=B;
-    TEST ST(S); S:+2;
-    W:=ST(S); S:+2;
-    B:=ST(S); S:+2;
-    G:=ST(S); S:+2;
-    Q:=ST(S); S:+2;
+                S:=S+2;
+    W:=ST(S); S:=S+2;
+    B:=ST(S); S:=S+2;
+    G:=ST(S); S:=S+2;
+    Q:=ST(S); S:=S+2;
     S:=W;
   END;
   PROCEDURE ENTERPROG(POPLENGTH,LINE,STACKLENGTH,
                                     VARLENGTH);
   BEGIN
-    INCREMENT ST(JOB);
-    S:-2; ST(S):=G;
-    S:-2; ST(S):=B;
-    S:-2;
+    ST(JOB):=ST(JOB)+1;
+    S:=S-2; ST(S):=G;
+    S:=S-2; ST(S):=B;
+    S:=S-2;
           ST(S):=S;
-    ST(S):+ST(Q); Q:+2;
-    S:-2; ST(S):=ST(Q); Q:+2;
+    ST(S):=ST(S)+ST(Q); Q:=Q+2;
+    S:=S-2; ST(S):=ST(Q); Q:=Q+2;
     B:=S;
     G:=B;
     X:=S;
-    X:-ST(HEAPTOP);
-    X COMPARE ST(Q); Q:+2;     "ERROR MESSAGE"
-    IF LESS<UNSIGNED> THEN     "WILL REFER TO"
+    X:=X-ST(HEAPTOP);
+    LESS:=X<ST(Q); Q:=Q+2;     "ERROR MESSAGE"
+    IF LESS"UNSIGNED" THEN     "WILL REFER TO"
       GOTO STACKLIMIT;         "LINE 1 OF USER"
-    S:-ST(Q); Q:+2;            "PROGRAM"
+    S:=S-ST(Q); Q:=Q+2;            "PROGRAM"
   END;
   PROCEDURE EXITPROG;
   BEGIN
-    TEST ST(CONTINUE);
+    ZERO:=ST(CONTINUE)=0;
     IF ZERO
       THEN GOTO EXCEPTION
       ELSE GOTO TERMINATED;
@@ -733,18 +731,18 @@ REALOVERFLOW:  GOTO OVERFLOWERROR;
   PROCEDURE BEGINCLASS(STACKLENGTH,10,LINE,0);
   BEGIN
     X:=S;
-    X:-ST(HEAPTOP);
-    X COMPARE ST(Q); Q:+2;     "ERROR MESSAGE"
-    IF LESS<UNSIGNED> THEN     "WILL REFER TO"
+    X:=X-ST(HEAPTOP);
+    LESS:=X<ST(Q); Q:=Q+2;     "ERROR MESSAGE"
+    IF LESS"UNSIGNED" THEN     "WILL REFER TO"
       GOTO STACKLIMIT;         "LINE OF CALL"
-    S:-2; ST(S):=G;
-    S:-2; ST(S):=B;
-    S:-2;
+    S:=S-2; ST(S):=G;
+    S:=S-2; ST(S):=B;
+    S:=S-2;
           ST(S):=S;
-    ST(S):+ST(Q); Q:+2;
-    S:-2; ST(S):=ST(Q); Q:+2;
+    ST(S):=ST(S)+ST(Q); Q:=Q+2;
+    S:=S-2; ST(S):=ST(Q); Q:=Q+2;
     B:=S;
-    S:-ST(Q); Q:+2;
+    S:=S-ST(Q); Q:=Q+2;
     W:=ST(B+2);
     G:=ST(W-2);
   END;
@@ -764,18 +762,18 @@ REALOVERFLOW:  GOTO OVERFLOWERROR;
   PROCEDURE BEGINMON(STACKLENGTH,10,LINE,0);
   BEGIN
     X:=S;
-    X:-ST(HEAPTOP);
-    X COMPARE ST(Q); Q:+2;     "ERROR MESSAGE"
-    IF LESS<UNSIGNED> THEN     "WILL REFER TO"
+    X:=X-ST(HEAPTOP);
+    LESS:=X<ST(Q); Q:=Q+2;     "ERROR MESSAGE"
+    IF LESS"UNSIGNED" THEN     "WILL REFER TO"
       GOTO STACKLIMIT;         "LINE OF CALL"
-    S:-2; ST(S):=G;
-    S:-2; ST(S):=B;
-    S:-2;
+    S:=S-2; ST(S):=G;
+    S:=S-2; ST(S):=B;
+    S:=S-2;
           ST(S):=S;
-    ST(S):+ST(Q); Q:+2;
-    S:-2; ST(S):=ST(Q); Q:+2;
+    ST(S):=ST(S)+ST(Q); Q:=Q+2;
+    S:=S-2; ST(S):=ST(Q); Q:=Q+2;
     B:=S;
-    S:-ST(Q); Q:+2;
+    S:=S-ST(Q); Q:=Q+2;
     W:=ST(B+2);
     G:=ST(W-2);
     ST(KERNELOP):=INITGATE1;
@@ -788,29 +786,29 @@ REALOVERFLOW:  GOTO OVERFLOWERROR;
     ST(KERNELARG1):=ST(G);
     KERNELCALL;
     S:=B;
-    TEST ST(S); S:+2;
-    W:=ST(S); S:+2;
-    B:=ST(S); S:+2;
-    G:=ST(S); S:+2;
-    Q:=ST(S); S:+2;
+                S:=S+2;
+    W:=ST(S); S:=S+2;
+    B:=ST(S); S:=S+2;
+    G:=ST(S); S:=S+2;
+    Q:=ST(S); S:=S+2;
     S:=W;
   END;
   PROCEDURE ENTERMON(STACKLENGTH, POPLENGTH,
                               LINE, VARLENGTH);
   BEGIN
     X:=S;
-    X:-ST(HEAPTOP);
-    X COMPARE ST(Q); Q:+2;     "ERROR MESSAGE"
-    IF LESS<UNSIGNED> THEN     "WILL REFER TO"
+    X:=X-ST(HEAPTOP);
+    LESS:=X<ST(Q); Q:=Q+2;     "ERROR MESSAGE"
+    IF LESS"UNSIGNED" THEN     "WILL REFER TO"
       GOTO STACKLIMIT;         "LINE OF CALL"
-    S:-2; ST(S):=G;
-    S:-2; ST(S):=B;
-    S:-2;
+    S:=S-2; ST(S):=G;
+    S:=S-2; ST(S):=B;
+    S:=S-2;
           ST(S):=S;
-    ST(S):+ST(Q); Q:+2;
-    S:-2; ST(S):=ST(Q); Q:+2;
+    ST(S):=ST(S)+ST(Q); Q:=Q+2;
+    S:=S-2; ST(S):=ST(Q); Q:=Q+2;
     B:=S;
-    S:-ST(Q); Q:+2;
+    S:=S-ST(Q); Q:=Q+2;
     W:=ST(B+2);
     G:=ST(W-2);
     ST(KERNELOP):=ENTERGATE1;
@@ -823,7 +821,7 @@ REALOVERFLOW:  GOTO OVERFLOWERROR;
   END;
   PROCEDURE BEGINPROC(LINE);
   BEGIN
-    ST(B):=ST(Q); Q:+2;
+    ST(B):=ST(Q); Q:=Q+2;
   END;
   PROCEDURE ENDPROC;
   BEGIN
@@ -834,66 +832,66 @@ REALOVERFLOW:  GOTO OVERFLOWERROR;
                                LINE,VARLENGTH);
   BEGIN
     X:=S;
-    X:-ST(HEAPTOP);
-    X COMPARE ST(Q); Q:+2;     "ERROR MESSAGE"
-    IF LESS<UNSIGNED> THEN     "WILL REFER TO"
+    X:=X-ST(HEAPTOP);
+    LESS:=X<ST(Q); Q:=Q+2;     "ERROR MESSAGE"
+    IF LESS"UNSIGNED" THEN     "WILL REFER TO"
       GOTO STACKLIMIT;         "LINE OF CALL"
-    S:-2; ST(S):=G;
-    S:-2; ST(S):=B;
-    S:-2;
+    S:=S-2; ST(S):=G;
+    S:=S-2; ST(S):=B;
+    S:=S-2;
           ST(S):=S;
-    ST(S):+ST(Q); Q:+2;
-    S:-2; ST(S):=ST(Q); Q:+2;
+    ST(S):=ST(S)+ST(Q); Q:=Q+2;
+    S:=S-2; ST(S):=ST(Q); Q:=Q+2;
     B:=S;
-    S:-ST(Q); Q:+2;
+    S:=S-ST(Q); Q:=Q+2;
     G:=ST(G+6);
-    CLEAR ST(JOB);
+    ST(JOB):=0;
   END;
   PROCEDURE EXITPROC;
   BEGIN
     S:=B;
-    TEST ST(S); S:+2;
-    W:=ST(S); S:+2;
-    B:=ST(S); S:+2;
-    G:=ST(S); S:+2;
-    Q:=ST(S); S:+2;
+                S:=S+2;
+    W:=ST(S); S:=S+2;
+    B:=ST(S); S:=S+2;
+    G:=ST(S); S:=S+2;
+    Q:=ST(S); S:=S+2;
     S:=W;
-    INCREMENT ST(JOB);
+    ST(JOB):=ST(JOB)+1;
   END;
   PROCEDURE POP(LENGTH);
   BEGIN
-    S:+ST(Q); Q:+2;
+    S:=S+ST(Q); Q:=Q+2;
   END;
   PROCEDURE NEWLINE(NUMBER);
   BEGIN
-    ST(B):=ST(Q); Q:+2;
+    ST(B):=ST(Q); Q:=Q+2;
   END;
   PROCEDURE INCRWORD;
   BEGIN
-    INCREMENT ST(ST(S)); S:+2;
+    ST(ST(S)):=ST(ST(S))+1; S:=S+2;
   END;
   PROCEDURE DECRWORD;
   BEGIN
-    DECREMENT ST(ST(S)); S:+2;
+    ST(ST(S)):=ST(ST(S))-1; S:=S+2;
   END;
   PROCEDURE INITCLASS(PARAMLENGTH,DISTANCE);
   BEGIN
-    W:=ST(Q); Q:+2;            "W=PARAMLENGTH"
-    IF NONZERO THEN
+    W:=ST(Q); ZERO:=W=0; Q:=Q+2;            "W=PARAMLENGTH"
+    IF NOT ZERO THEN
       BEGIN
         X:=S;
-        X:+W;                 "X=S+PARAMLENGTH"
+        X:=X+W;                 "X=S+PARAMLENGTH"
         X:=ST(X);
-        TEST ST(X); X:+2;     "X=CLASS ADDR+2"
-        HALVE W
-        ITERATE W TIMES
+                    X:=X+2;     "X=CLASS ADDR+2"
+        W:=W DIV 2;
+        FOR Z:=1 TO W DO
         BEGIN
-          ST(X):=ST(S); X:+2; S:+2;
+          ST(X):=ST(S); X:=X+2; S:=S+2;
         END;
       END;
     W:=Q;
-    W:+ST(Q); Q:+2;
-    S:-2; ST(S):=Q;
+    W:=W+ST(Q); Q:=Q+2;
+    S:=S-2; ST(S):=Q;
     Q:=W;
   END;
   PROCEDURE INITMON(PARAMLENGTH,DISTANCE);
@@ -904,110 +902,106 @@ REALOVERFLOW:  GOTO OVERFLOWERROR;
                          STACKLENGTH,DISTANCE);
   BEGIN
     ST(KERNELOP):=INITPROCESS1;
-    ST(KERNELARG1):=ST(Q); Q:+2;
-    ST(KERNELARG2):=ST(Q); Q:+2;
-    ST(KERNELARG3):=ST(Q); Q:+2;
+    ST(KERNELARG1):=ST(Q); Q:=Q+2;
+    ST(KERNELARG2):=ST(Q); Q:=Q+2;
+    ST(KERNELARG3):=ST(Q); Q:=Q+2;
     ST(KERNELARG4):=Q;
-    ST(KERNELARG4):+ST(Q); Q:+2;
+    ST(KERNELARG4):=ST(KERNELARG4)+ST(Q); Q:=Q+2;
     KERNELCALL;
-    TEST ST(S); S:+2;
+                S:=S+2;
   END;
   PROCEDURE PUSHLABEL(DISTANCE);
   BEGIN
-    S:-2; ST(S):=Q;
-    ST(S):+ST(Q); Q:+2;
+    S:=S-2; ST(S):=Q;
+    ST(S):=ST(S)+ST(Q); Q:=Q+2;
   END;
   PROCEDURE CALLPROG;
   BEGIN
     W:=Q;                      "W=OLD Q"
     Q:=ST(S);                  "Q=CODE ADDR"
-    TEST ST(Q); Q:+2;
-    ST(S):=ST(Q); Q:+2;        "ST(S)=CODELENG"
-    Q:+4;                      "Q=CODEADDR+8"
-    ST(S):+Q;                  "ST(S)=CONSTADR"
-    S:-2; ST(S):=W;            "PUSH(OLD Q)"
+                Q:=Q+2;
+    ST(S):=ST(Q); Q:=Q+2;        "ST(S)=CODELENG"
+    Q:=Q+4;                      "Q=CODEADDR+8"
+    ST(S):=ST(S)+Q;                  "ST(S)=CONSTADR"
+    S:=S-2; ST(S):=W;            "PUSH(OLD Q)"
   END;
   PROCEDURE TRUNCREAL;
   BEGIN
-    W:=<REAL>ST(S); S:+8;
-    S:-2; ST(S):=TRUNC(W);
-    IF OVERFLOW THEN
-      GOTO OVERFLOWERROR;
+    W:="REAL"ST(S); S:=S+8;
+    S:=S-2; ST(S):=TRUNC(W);
   END;
   PROCEDURE ABSWORD;
   BEGIN
-    TEST ST(S);
+    NEGATIVE:=ST(S)<0;
     IF NEGATIVE THEN
       BEGIN
         ST(S):=-ST(S);
-        IF OVERFLOW THEN
-          GOTO OVERFLOWERROR;
       END;
   END;
   PROCEDURE ABSREAL;
   BEGIN
-    ST(S):=ABS<REAL>(ST(S));
+    ST(S):=ABS"REAL"(ST(S));
   END;
   PROCEDURE SUCCWORD;
   BEGIN
-    INCREMENT ST(S);
+    ST(S):=ST(S)+1;
   END;
   PROCEDURE PREDWORD;
   BEGIN
-    DECREMENT ST(S);
+    ST(S):=ST(S)-1;
   END;
   PROCEDURE CONVWORD;
   BEGIN
-    W:=CONV(ST(S)); S:+2;
-    S:-8; ST(S):=<REAL>W;
+    W:=CONV(ST(S)); S:=S+2;
+    S:=S-8; ST(S):="REAL"W;
   END;
   PROCEDURE EMPTY;
   BEGIN
-    CLEAR W;
-    TEST ST(S);
+    W:=0;
+    ZERO:=ST(S)=0;
     IF ZERO THEN
-      INCREMENT W;
+      W:=W+1;
     ST(S):=W;
   END;
   PROCEDURE ATTRIBUTE;
   BEGIN
     W:=ST(S);
-    DOUBLE W;
+    W:=W*2;
     ST(S):=ST(W+HEAD);
   END;
   PROCEDURE REALTIME;
   BEGIN
     ST(KERNELOP):=REALTIME1;
     KERNELCALL;
-    S:-2; ST(S):=ST(KERNELARG1);
+    S:=S-2; ST(S):=ST(KERNELARG1);
   END;
   PROCEDURE DELAY;
   BEGIN
     ST(KERNELOP):=DELAYGATE1;
     ST(KERNELARG1):=ST(G);
-    ST(KERNELARG2):=ST(S); S:+2;
+    ST(KERNELARG2):=ST(S); S:=S+2;
     KERNELCALL;
   END;
   PROCEDURE CONTINUE;
   BEGIN
     ST(KERNELOP):=CONTGATE1;
     ST(KERNELARG1):=ST(G);
-    ST(KERNELARG2):=ST(S); S:+2;
+    ST(KERNELARG2):=ST(S); S:=S+2;
     KERNELCALL;
     S:=B;
-    TEST ST(S); S:+2;
-    W:=ST(S); S:+2;
-    B:=ST(S); S:+2;
-    G:=ST(S); S:+2;
-    Q:=ST(S); S:+2;
+                S:=S+2;
+    W:=ST(S); S:=S+2;
+    B:=ST(S); S:=S+2;
+    G:=ST(S); S:=S+2;
+    Q:=ST(S); S:=S+2;
     S:=W;
   END;
   PROCEDURE IO;
   BEGIN
     ST(KERNELOP):=IO1;
-    ST(KERNELARG3):=ST(S); S:+2;
-    ST(KERNELARG2):=ST(S); S:+2;
-    ST(KERNELARG1):=ST(S); S:+2;
+    ST(KERNELARG3):=ST(S); S:=S+2;
+    ST(KERNELARG2):=ST(S); S:=S+2;
+    ST(KERNELARG1):=ST(S); S:=S+2;
     KERNELCALL;
   END;
   PROCEDURE START;
@@ -1017,13 +1011,13 @@ REALOVERFLOW:  GOTO OVERFLOWERROR;
   PROCEDURE STOP;
   BEGIN
     ST(KERNELOP):=STOPJOB1;
-    ST(KERNELARG2):=ST(S); S:+2;
-    ST(KERNELARG1):=ST(S); S:+2;
+    ST(KERNELARG2):=ST(S); S:=S+2;
+    ST(KERNELARG1):=ST(S); S:=S+2;
     KERNELCALL;
   END;
   PROCEDURE SETHEAP;
   BEGIN
-    ST(HEAPTOP):=ST(S); S:+2;
+    ST(HEAPTOP):=ST(S); S:=S+2;
   END;
   PROCEDURE WAIT;
   BEGIN
@@ -1053,7 +1047,7 @@ STACKLIMIT:
   GOTO EXCEPTION;
 EXCEPTION:
   ST(LINE):=ST(B);
-  TEST ST(JOB);
+  ZERO:=ST(JOB)=0;
   IF ZERO THEN "INSYSTEM"
     BEGIN
     ST(KERNELOP):=SYSTEMERROR;
@@ -1063,11 +1057,11 @@ EXCEPTION:
     BEGIN
       B:=G;
       S:=B;
-      TEST ST(S); S:+2;
-      W:=ST(S); S:+2;
-      B:=ST(S); S:+2;
-      G:=ST(S); S:+2;
-      Q:=ST(S); S:+2;
+                  S:=S+2;
+      W:=ST(S); S:=S+2;
+      B:=ST(S); S:=S+2;
+      G:=ST(S); S:=S+2;
+      Q:=ST(S); S:=S+2;
       S:=W;
-      CLEAR ST(JOB);
+      ST(JOB):=0;
   END;
