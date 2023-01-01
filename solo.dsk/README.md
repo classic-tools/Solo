@@ -1,5 +1,5 @@
 # solo.dsk
-Files and Segments extracted from disk image
+Data extracted from solo.dsk disk image
 
 |Directory|Contents                                    |       
 |---------|--------------------------------------------|
